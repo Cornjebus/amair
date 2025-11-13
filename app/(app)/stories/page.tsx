@@ -1,0 +1,213 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useUser } from '@clerk/nextjs'
+import Link from 'next/link'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Sparkles, Search, Filter } from 'lucide-react'
+import { supabase } from '@/lib/supabase/client'
+
+export default function StoriesPage() {
+  const { user } = useUser()
+  const [stories, setStories] = useState<any[]>([])
+  const [filteredStories, setFilteredStories] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterTone, setFilterTone] = useState<string>('all')
+
+  useEffect(() => {
+    async function loadStories() {
+      if (!user) return
+
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('clerk_id', user.id)
+          .single()
+
+        if (!userData) return
+
+        const { data: storiesData } = await supabase
+          .from('stories')
+          .select('*')
+          .eq('user_id', userData.id)
+          .order('created_at', { ascending: false })
+
+        setStories(storiesData || [])
+        setFilteredStories(storiesData || [])
+      } catch (error) {
+        console.error('Error loading stories:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadStories()
+  }, [user])
+
+  useEffect(() => {
+    let filtered = stories
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(story =>
+        story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        story.content.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    // Filter by tone
+    if (filterTone !== 'all') {
+      filtered = filtered.filter(story => story.tone === filterTone)
+    }
+
+    setFilteredStories(filtered)
+  }, [searchQuery, filterTone, stories])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-br from-lavender-400 to-skyblue-400 rounded-full flex items-center justify-center butterfly-glow animate-flutter mx-auto mb-4">
+            <span className="text-4xl">🦋</span>
+          </div>
+          <p className="text-lavender-600">Loading your stories...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-5xl font-playfair font-bold text-lavender-900 mb-2">
+            My Stories
+          </h1>
+          <p className="text-lg text-lavender-600">
+            {stories.length} magical {stories.length === 1 ? 'story' : 'stories'} created
+          </p>
+        </div>
+        <Link href="/create">
+          <Button size="lg">
+            <Sparkles className="mr-2 h-5 w-5" />
+            Create New Story
+          </Button>
+        </Link>
+      </div>
+
+      {/* Search and Filter */}
+      {stories.length > 0 && (
+        <div className="flex gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-lavender-400" />
+            <Input
+              placeholder="Search stories..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-12"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={filterTone === 'all' ? 'default' : 'outline'}
+              onClick={() => setFilterTone('all')}
+            >
+              All
+            </Button>
+            <Button
+              variant={filterTone === 'bedtime-calm' ? 'default' : 'outline'}
+              onClick={() => setFilterTone('bedtime-calm')}
+            >
+              🌙 Calm
+            </Button>
+            <Button
+              variant={filterTone === 'funny' ? 'default' : 'outline'}
+              onClick={() => setFilterTone('funny')}
+            >
+              😄 Funny
+            </Button>
+            <Button
+              variant={filterTone === 'adventure' ? 'default' : 'outline'}
+              onClick={() => setFilterTone('adventure')}
+            >
+              🗺️ Adventure
+            </Button>
+            <Button
+              variant={filterTone === 'mystery' ? 'default' : 'outline'}
+              onClick={() => setFilterTone('mystery')}
+            >
+              🔍 Mystery
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Stories Grid */}
+      {filteredStories.length > 0 ? (
+        <div className="grid md:grid-cols-3 gap-6">
+          {filteredStories.map((story) => (
+            <Link key={story.id} href={`/stories/${story.id}`}>
+              <Card className="hover:shadow-xl transition-all hover:scale-105 cursor-pointer h-full">
+                <CardHeader>
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-3xl">
+                      {story.tone === 'bedtime-calm' ? '🌙' : story.tone === 'funny' ? '😄' : story.tone === 'adventure' ? '🗺️' : '🔍'}
+                    </span>
+                    <div className="text-right">
+                      <div className="text-xs text-lavender-600">
+                        {new Date(story.created_at).toLocaleDateString()}
+                      </div>
+                      {story.is_favorite && <span className="text-lg">❤️</span>}
+                    </div>
+                  </div>
+                  <CardTitle className="text-xl line-clamp-2">
+                    {story.title}
+                  </CardTitle>
+                  <CardDescription>
+                    {story.word_count} words • {Math.ceil(story.word_count / 150)} min read
+                  </CardDescription>
+                  <div className="pt-4 text-sm text-lavender-700 line-clamp-3">
+                    {story.content.substring(0, 150)}...
+                  </div>
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      ) : stories.length > 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <div className="text-6xl mb-4">🔍</div>
+            <h3 className="text-2xl font-playfair font-bold text-lavender-900 mb-2">
+              No Stories Found
+            </h3>
+            <p className="text-lavender-600">
+              Try adjusting your search or filters
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="text-center py-12">
+          <CardContent>
+            <div className="text-6xl mb-4">📚</div>
+            <h3 className="text-2xl font-playfair font-bold text-lavender-900 mb-2">
+              No Stories Yet
+            </h3>
+            <p className="text-lavender-600 mb-6">
+              Create your first magical bedtime story!
+            </p>
+            <Link href="/create">
+              <Button size="lg">
+                Create Your First Story <Sparkles className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  )
+}

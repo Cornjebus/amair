@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 42 100% 98%;
+    --foreground: 270 60% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 270 60% 20%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 270 60% 20%;
+    --primary: 270 70% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 200 80% 60%;
+    --secondary-foreground: 270 60% 20%;
+    --muted: 270 20% 95%;
+    --muted-foreground: 270 30% 45%;
+    --accent: 270 50% 90%;
+    --accent-foreground: 270 60% 30%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 270 30% 88%;
+    --input: 270 30% 88%;
+    --ring: 270 70% 65%;
+    --radius: 1rem;
+
+    --font-playfair: 'Playfair Display', serif;
+  }
+
+  .dark {
+    --background: 270 50% 8%;
+    --foreground: 270 30% 95%;
+    --card: 270 50% 10%;
+    --card-foreground: 270 30% 95%;
+    --popover: 270 50% 10%;
+    --popover-foreground: 270 30% 95%;
+    --primary: 270 70% 65%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 200 70% 50%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 270 30% 20%;
+    --muted-foreground: 270 20% 65%;
+    --accent: 270 40% 20%;
+    --accent-foreground: 270 30% 95%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 270 30% 95%;
+    --border: 270 30% 25%;
+    --input: 270 30% 25%;
+    --ring: 270 70% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-gradient-to-br from-lavender-50 via-skyblue-50 to-cream-50 text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-playfair);
+  }
+}
+
+@layer utilities {
+  .amari-card {
+    @apply bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg shadow-lavender-200/50 border border-lavender-100;
+  }
+
+  .amari-button {
+    @apply rounded-full px-6 py-3 font-medium transition-all duration-300 hover:scale-105 active:scale-95;
+  }
+
+  .amari-input {
+    @apply rounded-2xl border-2 border-lavender-200 bg-white/50 px-4 py-3 focus:border-lavender-400 focus:ring-4 focus:ring-lavender-100 transition-all;
+  }
+
+  .butterfly-glow {
+    filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.4));
+  }
+}
