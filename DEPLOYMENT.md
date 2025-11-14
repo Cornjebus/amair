@@ -1,283 +1,115 @@
-# 🚀 Deployment Guide for Amari
+# 🚀 Amari Deployment Guide - Vercel
 
-This guide will walk you through deploying Amari to production.
+## Quick Deployment Steps
 
-## Prerequisites Checklist
+### 1. Deploy to Vercel
+- Go to https://vercel.com/new
+- Import repository: Cornjebus/amair
+- Branch: claude/amari-production-setup-011CV65mEyXDtCjhyDb3pN5f
+- Framework: Next.js (auto-detected)
 
-Before deploying, ensure you have:
+### 2. Environment Variables (16 required)
 
-- ✅ GitHub repository with your code
-- ✅ Vercel account (or other hosting provider)
-- ✅ Production Clerk account
-- ✅ Production Supabase project
-- ✅ Production Stripe account
-- ✅ OpenAI API key with billing enabled
+Add these in Vercel Project Settings → Environment Variables:
 
-## Step-by-Step Deployment
-
-### 1. Prepare Supabase
-
-1. Create a new project in Supabase for production
-2. Run the schema from `supabase/schema.sql`:
-   - Go to SQL Editor in Supabase
-   - Copy the contents of `supabase/schema.sql`
-   - Execute the SQL
-3. Verify all tables are created:
-   - users
-   - children
-   - stories
-   - story_seeds
-   - daily_challenges
-4. Note down:
-   - Project URL
-   - Anon key
-   - Service role key
-
-### 2. Configure Clerk
-
-1. Create a production instance in Clerk
-2. Configure:
-   - Enable Email authentication
-   - Set up OAuth providers (optional)
-   - Add production domain to allowed domains
-3. Create webhook:
-   - URL: `https://your-domain.com/api/webhooks/clerk`
-   - Events: `user.created`, `user.deleted`
-   - Copy webhook signing secret
-4. Note down:
-   - Publishable key
-   - Secret key
-   - Webhook secret
-
-### 3. Set Up Stripe
-
-1. Switch to Stripe Live mode
-2. Create products:
-   ```
-   Product: Amari Premium
-   Price: $9.99/month (recurring)
-   ```
-3. Create webhook:
-   - URL: `https://your-domain.com/api/webhooks/stripe`
-   - Events:
-     - `checkout.session.completed`
-     - `customer.subscription.updated`
-     - `customer.subscription.deleted`
-     - `invoice.payment_failed`
-   - Copy webhook secret
-4. Enable Customer Portal in Settings
-5. Note down:
-   - Publishable key
-   - Secret key
-   - Webhook secret
-   - Monthly price ID
-
-### 4. Deploy to Vercel
-
-1. **Push to GitHub**
-   ```bash
-   git add .
-   git commit -m "Ready for production"
-   git push origin main
-   ```
-
-2. **Import to Vercel**
-   - Go to [vercel.com](https://vercel.com)
-   - Click "New Project"
-   - Import your GitHub repository
-   - Select the `amair` directory if needed
-
-3. **Configure Environment Variables**
-
-   In Vercel Project Settings → Environment Variables, add:
-
-   ```env
-   # Clerk
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
-   CLERK_SECRET_KEY=sk_live_...
-   CLERK_WEBHOOK_SECRET=whsec_...
-   NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-   NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
-   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
-
-   # Supabase
-   NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-   SUPABASE_SERVICE_ROLE_KEY=eyJ...
-
-   # Stripe
-   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
-   STRIPE_SECRET_KEY=sk_live_...
-   STRIPE_WEBHOOK_SECRET=whsec_...
-   NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID=price_...
-
-   # OpenAI
-   OPENAI_API_KEY=sk-...
-
-   # App
-   NEXT_PUBLIC_APP_URL=https://your-domain.com
-   NODE_ENV=production
-   ```
-
-4. **Deploy**
-   - Click "Deploy"
-   - Wait for build to complete
-   - Get your production URL
-
-### 5. Update Webhooks
-
-1. **Update Clerk Webhook**
-   - Go to Clerk Dashboard → Webhooks
-   - Edit your webhook
-   - Update URL to: `https://your-domain.com/api/webhooks/clerk`
-
-2. **Update Stripe Webhook**
-   - Go to Stripe Dashboard → Webhooks
-   - Edit your webhook
-   - Update URL to: `https://your-domain.com/api/webhooks/stripe`
-
-### 6. Configure Custom Domain (Optional)
-
-1. In Vercel:
-   - Go to Project Settings → Domains
-   - Add your custom domain
-   - Follow DNS configuration instructions
-
-2. Update all services:
-   - Update `NEXT_PUBLIC_APP_URL` in Vercel
-   - Update Clerk allowed domains
-   - Update Stripe webhook URLs
-   - Redeploy
-
-### 7. Test Production
-
-1. **Test Authentication**
-   - Sign up with a test account
-   - Verify user is created in Supabase
-   - Check Clerk webhook logs
-
-2. **Test Story Creation**
-   - Create a test story
-   - Verify it saves to database
-   - Test read-aloud feature
-
-3. **Test Payments**
-   - Use Stripe test cards in test mode
-   - Test checkout flow
-   - Verify subscription webhook
-
-4. **Test Webhooks**
-   - Check Clerk webhook deliveries
-   - Check Stripe webhook deliveries
-   - Verify webhook signing
-
-## Post-Deployment Checklist
-
-- ✅ All environment variables are set
-- ✅ Webhooks are configured and tested
-- ✅ Database schema is up to date
-- ✅ SSL certificate is active (automatic with Vercel)
-- ✅ Authentication works
-- ✅ Story creation works
-- ✅ Payment flow works
-- ✅ Webhook handlers work
-- ✅ Custom domain configured (if applicable)
-
-## Monitoring & Maintenance
-
-### Set Up Error Monitoring
-
-Consider adding Sentry for error tracking:
-
-```bash
-npm install @sentry/nextjs
+**Clerk (6 variables):**
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_YOUR_KEY
+CLERK_SECRET_KEY=sk_live_YOUR_KEY
+CLERK_WEBHOOK_SECRET=whsec_YOUR_SECRET
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+NEXT_PUBLIC_CLERK_FALLBACK_REDIRECT_URL=/dashboard
 ```
 
-### Monitor Database
+**Supabase (3 variables):**
+```
+NEXT_PUBLIC_SUPABASE_URL=https://pvrghvqtludzieffbfma.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2cmdodnF0bHVkemllZmZiZm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMwNjIzNzksImV4cCI6MjA3ODYzODM3OX0.4emUGw7OMLaU9_j27ENSe-TbOfzp4pTxduxzzQAMB1w
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB2cmdodnF0bHVkemllZmZiZm1hIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MzA2MjM3OSwiZXhwIjoyMDc4NjM4Mzc5fQ.FkvMyeiP6XMU4ZbkJlvnjnp5wGDiRgAvooC4J3fz-zI
+```
 
-- Set up Supabase alerts for:
-  - High database usage
-  - Query performance issues
-  - Failed webhook calls
+**Stripe (5 variables):**
+```
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_YOUR_PRODUCTION_KEY
+STRIPE_SECRET_KEY=sk_live_YOUR_PRODUCTION_SECRET
+STRIPE_WEBHOOK_SECRET=whsec_YOUR_PRODUCTION_WEBHOOK
+NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID=price_YOUR_PRODUCTION_PRICE
+NEXT_PUBLIC_APP_URL=https://your-app.vercel.app
+```
 
-### Monitor Stripe
+**OpenAI (1 variable):**
+```
+OPENAI_API_KEY=sk-proj-YOUR_API_KEY
+```
 
-- Enable email notifications for:
-  - Failed payments
-  - Subscription cancellations
-  - Disputes
+**Node (1 variable):**
+```
+NODE_ENV=production
+```
 
-### Monitor OpenAI Usage
+### 3. Get Production Stripe Keys
 
-- Set up billing alerts
-- Monitor token usage
-- Set spending limits
+**Switch Stripe to LIVE mode**, then create product:
 
-## Troubleshooting
+```bash
+# Get your live secret key from https://dashboard.stripe.com/apikeys
 
-### Webhook Failures
+# Create product
+stripe products create \
+  --name="Amari Premium" \
+  --description="Unlimited magical bedtime stories" \
+  --api-key YOUR_LIVE_SECRET_KEY
 
-1. Check webhook signing secrets are correct
-2. Verify webhook URLs are accessible
-3. Check server logs in Vercel
-4. Test with webhook test events
+# Create monthly price ($9.99)
+stripe prices create \
+  -d product=prod_XXXXX \
+  -d unit_amount=999 \
+  -d currency=usd \
+  -d "recurring[interval]=month" \
+  --api-key YOUR_LIVE_SECRET_KEY
+```
 
-### Database Connection Issues
+Use the returned `price_XXXXX` for `NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID`
 
-1. Verify Supabase keys are correct
-2. Check RLS policies are set up
-3. Verify network connectivity
-4. Check Supabase project status
+### 4. Configure Production Webhooks
 
-### Payment Issues
+**Stripe Webhook:**
+1. https://dashboard.stripe.com/webhooks (LIVE mode)
+2. Add endpoint: `https://your-app.vercel.app/api/webhooks/stripe`
+3. Select events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+4. Copy signing secret → Add as `STRIPE_WEBHOOK_SECRET` in Vercel
 
-1. Verify Stripe keys are in live mode
-2. Check webhook secret is correct
-3. Verify price IDs match
-4. Test with Stripe test cards first
+**Clerk Webhook:**
+1. https://dashboard.clerk.com → Webhooks
+2. Add endpoint: `https://your-app.vercel.app/api/webhooks/clerk`
+3. Select events: `user.created`, `user.updated`, `user.deleted`
+4. Copy signing secret → Add as `CLERK_WEBHOOK_SECRET` in Vercel
 
-## Rollback Plan
+### 5. Deploy
 
-If something goes wrong:
-
-1. In Vercel, go to Deployments
-2. Find the last working deployment
-3. Click "..." → "Promote to Production"
-4. Investigate the issue in the failed deployment logs
-
-## Scaling Considerations
-
-As your app grows, consider:
-
-1. **Database Optimization**
-   - Add indexes for frequently queried fields
-   - Set up read replicas in Supabase
-   - Implement caching (Redis)
-
-2. **API Rate Limiting**
-   - Implement rate limiting for story generation
-   - Use Vercel's built-in rate limiting
-
-3. **CDN & Caching**
-   - Optimize static assets
-   - Use Next.js Image optimization
-   - Configure cache headers
-
-4. **Background Jobs**
-   - Move long-running tasks to background workers
-   - Consider using Vercel Functions with longer timeouts
-
-## Support
-
-If you encounter issues:
-
-1. Check Vercel deployment logs
-2. Check Supabase logs
-3. Check Stripe webhook logs
-4. Check Clerk webhook logs
-5. Open an issue in the repository
+Click "Deploy" in Vercel!
 
 ---
 
-Happy Deploying! 🚀🦋
+## After Deployment
+
+1. Update `NEXT_PUBLIC_APP_URL` with your actual Vercel URL
+2. Update Clerk redirect URLs to use your domain
+3. Update Stripe webhook URL to use your domain
+4. Test sign up, story creation, and subscription flow
+
+---
+
+## Testing Checklist
+
+- [ ] Sign up works
+- [ ] Dashboard loads
+- [ ] Story generation works with correct pronouns
+- [ ] Subscription checkout works
+- [ ] Webhooks fire and activate subscription
+- [ ] User sees premium status after payment
+
+---
+
+**Important:** Use Stripe test mode first, then switch to live mode for production!
