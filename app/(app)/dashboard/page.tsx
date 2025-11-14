@@ -137,11 +137,29 @@ export default function DashboardPage() {
                 <p className="text-lavender-50 mb-4">
                   Free users: {stats.thisMonth}/3 stories this month
                 </p>
-                <Link href="/pricing">
-                  <Button variant="secondary" size="lg">
-                    Upgrade to Premium <Crown className="ml-2 h-5 w-5" />
-                  </Button>
-                </Link>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/create-checkout-session', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          priceId: process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID,
+                        }),
+                      })
+                      const data = await response.json()
+                      if (data.sessionId) {
+                        window.location.href = `https://checkout.stripe.com/c/pay/${data.sessionId}`
+                      }
+                    } catch (error) {
+                      console.error('Error creating checkout:', error)
+                    }
+                  }}
+                >
+                  Upgrade to Premium <Crown className="ml-2 h-5 w-5" />
+                </Button>
               </div>
               <div className="text-6xl animate-flutter">🦋</div>
             </div>
