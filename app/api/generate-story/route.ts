@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { syncUserToSupabase } from '@/lib/supabase/sync-user'
 
 if (!process.env.OPENAI_API_KEY) {
   throw new Error('Missing OPENAI_API_KEY')
@@ -13,6 +14,7 @@ const openai = new OpenAI({
 
 interface ChildData {
   name: string
+  gender: 'boy' | 'girl' | 'other'
   itemCount: number
   items: string[]
 }
@@ -43,7 +45,7 @@ const getToneInstructions = (tone: string): string => {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = auth()
+    const { userId } = await auth()
 
     if (!userId) {
       return NextResponse.json(
@@ -52,19 +54,21 @@ export async function POST(req: Request) {
       )
     }
 
-    // Get user from database
-    const { data: user } = await supabaseAdmin
-      .from('users')
-      .select('*')
-      .eq('clerk_id', userId)
-      .single()
+    // Get Clerk user details
+    const clerkUser = await currentUser()
 
-    if (!user) {
+    if (!clerkUser) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User not found in Clerk' },
         { status: 404 }
       )
     }
+
+    // Sync user to Supabase (creates if doesn't exist)
+    const user = await syncUserToSupabase(
+      userId,
+      clerkUser.emailAddresses[0]?.emailAddress || ''
+    )
 
     // Check subscription status
     if (user.subscription_status === 'free') {
@@ -89,8 +93,11 @@ export async function POST(req: Request) {
     // Build the prompt
     let prompt = `Create a ${config.tone} bedtime story that includes the following elements:\n\n`
 
+    // Add character info with pronouns
+    prompt += `Characters:\n`
     children.forEach((child) => {
-      prompt += `${child.name}'s special things: ${child.items.join(', ')}\n`
+      const pronouns = child.gender === 'girl' ? 'she/her' : child.gender === 'boy' ? 'he/him' : 'they/them'
+      prompt += `- ${child.name} (${pronouns}): ${child.items.join(', ')}\n`
     })
 
     prompt += `\n${getToneInstructions(config.tone)}\n`
@@ -98,6 +105,7 @@ export async function POST(req: Request) {
     prompt += `The story should:\n`
     prompt += `- Include ALL the special things naturally in the narrative\n`
     prompt += `- Feature ${children.map((c) => c.name).join(' and ')} as the main character(s)\n`
+    prompt += `- Use the correct pronouns for each character as specified above\n`
     prompt += `- Have a clear beginning, middle, and end\n`
     prompt += `- Be appropriate for children ages 3-10\n`
     prompt += `- Include dialogue and descriptive language\n`

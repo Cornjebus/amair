@@ -23,42 +23,32 @@ export default function DashboardPage() {
       if (!user) return
 
       try {
-        // Get user data
-        const { data: userData } = await supabase
-          .from('users')
-          .select('*')
-          .eq('clerk_id', user.id)
-          .single()
+        // Sync user and get stories via API
+        await fetch('/api/sync-user', { method: 'POST' })
 
-        if (!userData) return
+        const response = await fetch('/api/stories')
+        const data = await response.json()
 
-        // Get total stories
-        const { count: totalCount } = await supabase
-          .from('stories')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userData.id)
+        if (response.ok) {
+          const stories = data.stories || []
+          const now = new Date()
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-        // Get this month's stories
-        const { count: monthCount } = await supabase
-          .from('stories')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', userData.id)
-          .gte('created_at', new Date(new Date().setDate(1)).toISOString())
+          const monthStories = stories.filter((story: any) =>
+            new Date(story.created_at) >= startOfMonth
+          )
 
-        // Get recent stories
-        const { data: stories } = await supabase
-          .from('stories')
-          .select('*')
-          .eq('user_id', userData.id)
-          .order('created_at', { ascending: false })
-          .limit(3)
+          // Get user subscription status via sync-user
+          const userResponse = await fetch('/api/sync-user', { method: 'POST' })
+          const userData = await userResponse.json()
 
-        setStats({
-          totalStories: totalCount || 0,
-          thisMonth: monthCount || 0,
-          subscriptionStatus: userData.subscription_status,
-        })
-        setRecentStories(stories || [])
+          setStats({
+            totalStories: stories.length,
+            thisMonth: monthStories.length,
+            subscriptionStatus: userData.user?.subscription_status || 'free',
+          })
+          setRecentStories(stories.slice(0, 3))
+        }
       } catch (error) {
         console.error('Error loading dashboard:', error)
       } finally {

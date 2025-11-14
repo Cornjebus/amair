@@ -20,27 +20,15 @@ export default function StoryDetailPage() {
       if (!user || !params.id) return
 
       try {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('clerk_id', user.id)
-          .single()
+        const response = await fetch(`/api/stories/${params.id}`)
+        const data = await response.json()
 
-        if (!userData) return
-
-        const { data: storyData } = await supabase
-          .from('stories')
-          .select('*')
-          .eq('id', params.id as string)
-          .eq('user_id', userData.id)
-          .single()
-
-        if (storyData) {
+        if (response.ok && data.story) {
           setStory({
-            id: storyData.id,
-            title: storyData.title,
-            content: storyData.content,
-            wordCount: storyData.word_count,
+            id: data.story.id,
+            title: data.story.title,
+            content: data.story.content,
+            wordCount: data.story.word_count,
           })
         } else {
           router.push('/stories')

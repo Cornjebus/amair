@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 
 interface ChildData {
   name: string
+  gender: 'boy' | 'girl' | 'other'
   itemCount: number
   items: string[]
 }
@@ -51,6 +52,7 @@ export function StoryWizard({ onGenerate, isGenerating }: StoryWizardProps) {
   const handleNumChildrenSubmit = () => {
     const childArray: ChildData[] = Array(numChildren).fill(null).map(() => ({
       name: '',
+      gender: 'other',
       itemCount: 3,
       items: [],
     }))
@@ -164,6 +166,24 @@ export function StoryWizard({ onGenerate, isGenerating }: StoryWizardProps) {
                       updateChild(currentChild, { name: e.target.value })
                     }
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <Select
+                    value={children[currentChild]?.gender || 'other'}
+                    onValueChange={(value) =>
+                      updateChild(currentChild, { gender: value as 'boy' | 'girl' | 'other' })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="girl">Girl (she/her)</SelectItem>
+                      <SelectItem value="boy">Boy (he/him)</SelectItem>
+                      <SelectItem value="other">Other (they/them)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="itemCount">Number of Special Things (1-5)</Label>

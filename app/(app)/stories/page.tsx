@@ -22,22 +22,15 @@ export default function StoriesPage() {
       if (!user) return
 
       try {
-        const { data: userData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('clerk_id', user.id)
-          .single()
+        const response = await fetch('/api/stories')
+        const data = await response.json()
 
-        if (!userData) return
-
-        const { data: storiesData } = await supabase
-          .from('stories')
-          .select('*')
-          .eq('user_id', userData.id)
-          .order('created_at', { ascending: false })
-
-        setStories(storiesData || [])
-        setFilteredStories(storiesData || [])
+        if (response.ok) {
+          setStories(data.stories || [])
+          setFilteredStories(data.stories || [])
+        } else {
+          console.error('Error loading stories:', data.error)
+        }
       } catch (error) {
         console.error('Error loading stories:', error)
       } finally {
