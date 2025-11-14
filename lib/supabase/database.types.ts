@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       users: {
@@ -40,6 +40,7 @@ export interface Database {
           subscription_end_date?: string | null
           stripe_customer_id?: string | null
         }
+        Relationships: []
       }
       children: {
         Row: {
@@ -69,6 +70,15 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "children_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       stories: {
         Row: {
@@ -110,6 +120,15 @@ export interface Database {
           audio_url?: string | null
           word_count?: number
         }
+        Relationships: [
+          {
+            foreignKeyName: "stories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       story_seeds: {
         Row: {
@@ -133,6 +152,15 @@ export interface Database {
           seed_items?: string[]
           created_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "story_seeds_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       daily_challenges: {
         Row: {
@@ -159,6 +187,15 @@ export interface Database {
           completed_at?: string | null
           created_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "daily_challenges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Views: {

@@ -66,6 +66,10 @@ export async function POST(req: Request) {
   if (eventType === 'user.deleted') {
     const { id } = evt.data
 
+    if (!id) {
+      return new Response('No user ID provided', { status: 400 })
+    }
+
     try {
       const { error } = await supabaseAdmin
         .from('users')

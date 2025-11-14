@@ -37,13 +37,16 @@ export async function POST(req: Request) {
 
           // Get subscription details
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+          const periodEnd = (subscription as any).current_period_end
 
           // Update user in database
           const { error } = await supabaseAdmin
             .from('users')
             .update({
               subscription_status: 'premium',
-              subscription_end_date: new Date(subscription.current_period_end * 1000).toISOString(),
+              subscription_end_date: periodEnd
+                ? new Date(periodEnd * 1000).toISOString()
+                : null,
               stripe_customer_id: customerId,
             })
             .eq('clerk_id', clerkUserId)
@@ -59,6 +62,7 @@ export async function POST(req: Request) {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
+        const periodEnd = (subscription as any).current_period_end
 
         // Determine subscription status
         let status: 'free' | 'premium' | 'trial' = 'free'
@@ -70,7 +74,9 @@ export async function POST(req: Request) {
           .from('users')
           .update({
             subscription_status: status,
-            subscription_end_date: new Date(subscription.current_period_end * 1000).toISOString(),
+            subscription_end_date: periodEnd
+              ? new Date(periodEnd * 1000).toISOString()
+              : null,
           })
           .eq('stripe_customer_id', customerId)
 
