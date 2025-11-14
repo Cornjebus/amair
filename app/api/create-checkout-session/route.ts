@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { stripe } from '@/lib/stripe/server'
+import { getStripe } from '@/lib/stripe/server'
 
 export async function POST(req: Request) {
   try {
@@ -36,6 +36,7 @@ export async function POST(req: Request) {
       hasStripeKey: !!process.env.STRIPE_SECRET_KEY
     })
 
+    const stripe = getStripe()
     const session = await stripe.checkout.sessions.create({
       mode: mode as 'subscription' | 'payment',
       payment_method_types: ['card'],

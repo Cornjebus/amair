@@ -1,7 +1,7 @@
 # Webhook Setup Instructions
 
 ## Production Deployment URL
-`https://amair-y5uj19ve0-cornelius-s-projects.vercel.app`
+`https://myamari.ai`
 
 ---
 
@@ -12,7 +12,7 @@
 2. Click **"Add endpoint"**
 3. **Endpoint URL:**
    ```
-   https://amair-y5uj19ve0-cornelius-s-projects.vercel.app/api/webhooks/stripe
+   https://myamari.ai/api/webhooks/stripe
    ```
 4. **Events to select:**
    - `checkout.session.completed`

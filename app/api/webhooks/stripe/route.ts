@@ -1,7 +1,7 @@
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe/server'
+import { getStripe } from '@/lib/stripe/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 
 export async function POST(req: Request) {
@@ -11,6 +11,7 @@ export async function POST(req: Request) {
   let event: Stripe.Event
 
   try {
+    const stripe = getStripe()
     event = stripe.webhooks.constructEvent(
       body,
       signature,
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
           }
 
           // Get subscription details
+          const stripe = getStripe()
           const subscription = await stripe.subscriptions.retrieve(subscriptionId)
           const periodEnd = (subscription as any).current_period_end
 
