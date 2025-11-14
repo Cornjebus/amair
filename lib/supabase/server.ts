@@ -26,9 +26,11 @@ export const getSupabaseAdmin = (): SupabaseClient<Database> => {
   return supabaseAdminInstance
 }
 
-// For backwards compatibility
-export const supabaseAdmin = new Proxy({} as SupabaseClient<Database>, {
-  get: (target, prop) => {
-    return getSupabaseAdmin()[prop as keyof SupabaseClient<Database>]
+// Direct export - simpler and more compatible than Proxy
+export const supabaseAdmin = (() => {
+  try {
+    return getSupabaseAdmin()
+  } catch {
+    return {} as SupabaseClient<Database>
   }
-})
+})()
