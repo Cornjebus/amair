@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       .from('users')
       .select('stripe_customer_id')
       .eq('clerk_id', userId)
-      .single()
+      .single<{ stripe_customer_id: string | null }>()
 
     if (error || !user?.stripe_customer_id) {
       return NextResponse.json(
