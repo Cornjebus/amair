@@ -54,7 +54,10 @@ export async function POST(req: Request) {
     })
 
     console.log('Checkout session created successfully:', session.id)
-    return NextResponse.json({ sessionId: session.id })
+    return NextResponse.json({
+      sessionId: session.id,
+      url: session.url
+    })
   } catch (err: any) {
     console.error('Error creating checkout session:', {
       message: err.message,

@@ -150,8 +150,11 @@ export default function DashboardPage() {
                         }),
                       })
                       const data = await response.json()
-                      if (data.sessionId) {
-                        window.location.href = `https://checkout.stripe.com/c/pay/${data.sessionId}`
+                      if (data.url) {
+                        // Use Stripe's URL directly - it includes encrypted session data in hash
+                        window.location.href = data.url
+                      } else if (response.ok) {
+                        console.error('No checkout URL received from API')
                       }
                     } catch (error) {
                       console.error('Error creating checkout:', error)
