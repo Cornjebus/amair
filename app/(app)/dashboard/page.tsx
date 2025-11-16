@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Sparkles, BookOpen, Zap, Crown } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import STRIPE_CONFIG from '@/lib/config/stripe'
 
 export default function DashboardPage() {
   const { user } = useUser()
@@ -142,22 +143,46 @@ export default function DashboardPage() {
                   size="lg"
                   onClick={async () => {
                     try {
+                      console.log('[Upgrade] Starting checkout process')
+                      console.log('[Upgrade] Using price ID:', STRIPE_CONFIG.monthlyPriceId)
+
+                      if (!STRIPE_CONFIG.monthlyPriceId) {
+                        console.error('[Upgrade] Price ID is not configured!')
+                        alert('Configuration error: Price ID is missing. Please contact support.')
+                        return
+                      }
+
                       const response = await fetch('/api/create-checkout-session', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                          priceId: process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID,
+                          priceId: STRIPE_CONFIG.monthlyPriceId,
                         }),
                       })
+
+                      console.log('[Upgrade] API response status:', response.status)
+
+                      if (!response.ok) {
+                        const error = await response.json()
+                        console.error('[Upgrade] API error:', error)
+                        alert(`Error creating checkout session: ${error.error || 'Unknown error'}`)
+                        return
+                      }
+
                       const data = await response.json()
+                      console.log('[Upgrade] API response data:', data)
+
                       if (data.url) {
+                        console.log('[Upgrade] Redirecting to Stripe checkout...')
                         // Use Stripe's URL directly - it includes encrypted session data in hash
                         window.location.href = data.url
-                      } else if (response.ok) {
-                        console.error('No checkout URL received from API')
+                      } else {
+                        console.error('[Upgrade] No checkout URL received from API')
+                        alert('Error: No checkout URL received. Please try again.')
                       }
                     } catch (error) {
-                      console.error('Error creating checkout:', error)
+                      console.error('[Upgrade] Error creating checkout:', error)
+                      alert('An unexpected error occurred. Please try again.')
                     }
                   }}
                 >
