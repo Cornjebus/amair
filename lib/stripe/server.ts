@@ -24,7 +24,7 @@ export function getStripe(): Stripe {
   }
 
   stripeInstance = new Stripe(cleanSecretKey, {
-    apiVersion: '2025-10-29.clover',
+    // Use Stripe account's default API version
     typescript: true,
   })
 

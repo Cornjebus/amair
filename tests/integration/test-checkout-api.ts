@@ -15,7 +15,6 @@ import * as path from 'path'
 // Load environment variables
 dotenv.config({ path: path.join(__dirname, '../../.env.local') })
 
-const API_VERSION = '2025-10-29.clover'
 
 interface CheckoutSessionRequest {
   priceId: string
@@ -39,7 +38,7 @@ async function testStripeInitialization() {
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: API_VERSION,
+      // Use Stripe account's default API version
       typescript: true,
     })
 
