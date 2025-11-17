@@ -28,12 +28,21 @@ export async function POST(req: Request) {
       throw new Error('Server configuration error: Missing app URL')
     }
 
+    // Clean the app URL - remove any whitespace, newlines, or escape sequences
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || '')
+      .replace(/\\n/g, '') // Remove literal \n
+      .replace(/\n/g, '')  // Remove actual newlines
+      .replace(/\r/g, '')  // Remove carriage returns
+      .trim()              // Remove leading/trailing whitespace
+
     console.log('Creating checkout session with:', {
       priceId,
       mode,
       userId,
-      appUrl: process.env.NEXT_PUBLIC_APP_URL,
-      hasStripeKey: !!process.env.STRIPE_SECRET_KEY
+      appUrl,
+      appUrlRaw: process.env.NEXT_PUBLIC_APP_URL,
+      hasStripeKey: !!process.env.STRIPE_SECRET_KEY,
+      stripeKeyLength: process.env.STRIPE_SECRET_KEY?.length
     })
 
     const stripe = getStripe()
@@ -46,8 +55,8 @@ export async function POST(req: Request) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
+      success_url: `${appUrl}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${appUrl}/pricing`,
       metadata: {
         clerk_user_id: userId,
       },

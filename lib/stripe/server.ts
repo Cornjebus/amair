@@ -12,7 +12,18 @@ export function getStripe(): Stripe {
     throw new Error('Missing STRIPE_SECRET_KEY environment variable')
   }
 
-  stripeInstance = new Stripe(secretKey, {
+  // Clean the secret key - remove any whitespace, newlines, or escape sequences
+  const cleanSecretKey = secretKey
+    .replace(/\\n/g, '') // Remove literal \n
+    .replace(/\n/g, '')  // Remove actual newlines
+    .replace(/\r/g, '')  // Remove carriage returns
+    .trim()              // Remove leading/trailing whitespace
+
+  if (!cleanSecretKey.startsWith('sk_')) {
+    throw new Error('Invalid STRIPE_SECRET_KEY format after cleaning')
+  }
+
+  stripeInstance = new Stripe(cleanSecretKey, {
     apiVersion: '2025-10-29.clover',
     typescript: true,
   })
