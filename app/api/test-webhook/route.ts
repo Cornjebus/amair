@@ -72,14 +72,16 @@ export async function POST(req: Request) {
       return NextResponse.json({
         success: true,
         message: 'User upgraded successfully',
-        user: {
-          id: updatedUser.id,
-          clerk_id: updatedUser.clerk_id,
-          email: updatedUser.email,
-          subscription_status: updatedUser.subscription_status,
-          stripe_customer_id: updatedUser.stripe_customer_id,
-          subscription_end_date: updatedUser.subscription_end_date,
-        },
+        user: updatedUser
+          ? {
+              id: updatedUser.id,
+              clerk_id: updatedUser.clerk_id,
+              email: updatedUser.email,
+              subscription_status: updatedUser.subscription_status,
+              stripe_customer_id: updatedUser.stripe_customer_id,
+              subscription_end_date: updatedUser.subscription_end_date,
+            }
+          : null,
       })
     }
 
