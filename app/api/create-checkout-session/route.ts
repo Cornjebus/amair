@@ -13,7 +13,14 @@ export async function POST(req: Request) {
       )
     }
 
-    const { priceId, mode = 'subscription' } = await req.json()
+    const { priceId: rawPriceId, mode = 'subscription' } = await req.json()
+
+    // Clean the price ID to avoid trailing whitespace or newline issues from env/config
+    const priceId = (rawPriceId || '')
+      .replace(/\\n/g, '') // Remove literal \n
+      .replace(/\n/g, '')  // Remove actual newlines
+      .replace(/\r/g, '')  // Remove carriage returns
+      .trim()              // Remove leading/trailing whitespace
 
     if (!priceId) {
       return NextResponse.json(

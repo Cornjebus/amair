@@ -14,11 +14,19 @@ const FALLBACK_VALUES = {
   yearlyPriceId: '',
 }
 
+// Helper to clean public env values (price IDs, publishable key) of stray whitespace/newlines
+const cleanPublicValue = (value: string | undefined, fallback: string) =>
+  (value || fallback)
+    .replace(/\\n/g, '') // Remove literal \n
+    .replace(/\n/g, '')  // Remove actual newlines
+    .replace(/\r/g, '')  // Remove carriage returns
+    .trim()
+
 // These are public, non-secret values that can be safely exposed to the client
 export const STRIPE_CONFIG = {
-  publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || FALLBACK_VALUES.publishableKey,
-  monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID || FALLBACK_VALUES.monthlyPriceId,
-  yearlyPriceId: process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID || FALLBACK_VALUES.yearlyPriceId,
+  publishableKey: cleanPublicValue(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, FALLBACK_VALUES.publishableKey),
+  monthlyPriceId: cleanPublicValue(process.env.NEXT_PUBLIC_STRIPE_MONTHLY_PRICE_ID, FALLBACK_VALUES.monthlyPriceId),
+  yearlyPriceId: cleanPublicValue(process.env.NEXT_PUBLIC_STRIPE_YEARLY_PRICE_ID, FALLBACK_VALUES.yearlyPriceId),
 } as const
 
 // Validate configuration at build time
