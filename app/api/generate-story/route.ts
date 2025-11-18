@@ -4,13 +4,20 @@ import OpenAI from 'openai'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { syncUserToSupabase } from '@/lib/supabase/sync-user'
 
-if (!process.env.OPENAI_API_KEY) {
-  throw new Error('Missing OPENAI_API_KEY')
-}
+// Initialize OpenAI client (lazy initialization to avoid build-time errors)
+let openai: OpenAI | null = null
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+function getOpenAIClient() {
+  if (!openai) {
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('Missing OPENAI_API_KEY')
+    }
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  }
+  return openai
+}
 
 interface ChildData {
   name: string
@@ -113,7 +120,8 @@ export async function POST(req: Request) {
     prompt += `Please provide:\n1. A creative title\n2. The complete story`
 
     // Generate story with OpenAI
-    const completion = await openai.chat.completions.create({
+    const client = getOpenAIClient()
+    const completion = await client.chat.completions.create({
       model: 'gpt-4-turbo-preview',
       messages: [
         {
