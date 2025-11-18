@@ -59,3 +59,8 @@ coordination/orchestration/*
 claude-flow
 # Removed Windows wrapper files per user request
 hive-mind-prompt-*.txt
+
+# Production environment files
+.env.production
+.env.production.*
+.env.vercel*
