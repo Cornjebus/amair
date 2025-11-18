@@ -27,12 +27,27 @@ export async function POST(req: Request) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
 
+        console.log('🎉 Checkout session completed:', {
+          sessionId: session.id,
+          customerId: session.customer,
+          mode: session.mode,
+          metadata: session.metadata,
+          subscription: session.subscription,
+        })
+
         if (session.mode === 'subscription') {
           const subscriptionId = session.subscription as string
           const customerId = session.customer as string
           const clerkUserId = session.metadata?.clerk_user_id
 
+          console.log('📝 Processing subscription upgrade:', {
+            clerkUserId,
+            customerId,
+            subscriptionId,
+          })
+
           if (!clerkUserId) {
+            console.error('❌ No clerk_user_id in session metadata:', session.metadata)
             throw new Error('No clerk_user_id in session metadata')
           }
 
@@ -42,7 +57,14 @@ export async function POST(req: Request) {
           const periodEnd = (subscription as any).current_period_end
 
           // Update user in database
-          const { error } = await supabaseAdmin
+          console.log('💾 Updating user in Supabase:', {
+            clerkUserId,
+            newStatus: 'premium',
+            customerId,
+            periodEnd: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+          })
+
+          const { data: updatedUser, error } = await supabaseAdmin
             .from('users')
             .update({
               subscription_status: 'premium',
@@ -52,11 +74,19 @@ export async function POST(req: Request) {
               stripe_customer_id: customerId,
             })
             .eq('clerk_id', clerkUserId)
+            .select()
 
           if (error) {
-            console.error('Error updating user subscription:', error)
+            console.error('❌ Error updating user subscription:', error)
             throw error
           }
+
+          console.log('✅ User upgraded successfully:', {
+            userId: updatedUser?.[0]?.id,
+            clerkId: updatedUser?.[0]?.clerk_id,
+            newStatus: updatedUser?.[0]?.subscription_status,
+            customerId: updatedUser?.[0]?.stripe_customer_id,
+          })
         }
         break
       }
