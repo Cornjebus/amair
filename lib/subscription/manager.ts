@@ -35,11 +35,11 @@ export async function getUserSubscription(userId: string): Promise<SubscriptionD
 
   return {
     tier: (user.subscription_tier || 'free') as SubscriptionTier,
-    status: mapSubscriptionStatus(user.subscription_status),
+    status: mapSubscriptionStatus(user.subscription_status || 'free'),
     current_period_start: user.subscription_period_start || new Date().toISOString(),
     current_period_end: user.current_period_end || new Date().toISOString(),
-    stripe_subscription_id: user.stripe_subscription_id,
-    stripe_customer_id: user.stripe_customer_id,
+    stripe_subscription_id: user.stripe_subscription_id || undefined,
+    stripe_customer_id: user.stripe_customer_id || undefined,
     cancel_at_period_end: false, // Will be fetched from Stripe if needed
   }
 }

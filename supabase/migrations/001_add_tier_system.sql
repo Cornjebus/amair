@@ -1,6 +1,9 @@
 -- Phase 1: Add Tier System and Usage Tracking
 -- This migration extends the existing schema without breaking current functionality
 
+-- Enable pgcrypto extension for gen_random_uuid()
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
 -- Add new tier enum (extends existing subscription_status)
 CREATE TYPE subscription_tier AS ENUM (
   'free',
@@ -44,7 +47,7 @@ INSERT INTO tier_limits (tier_name, monthly_stories, monthly_premium_voices, max
 
 -- Create usage tracking table
 CREATE TABLE usage_tracking (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   billing_period_start DATE NOT NULL,
   billing_period_end DATE NOT NULL,

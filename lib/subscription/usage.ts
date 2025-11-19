@@ -153,16 +153,16 @@ export async function trackStoryGeneration(
     }
 
     return {
-      stories_generated: updated.stories_generated,
-      premium_voices_used: updated.premium_voices_used,
+      stories_generated: updated.stories_generated || 0,
+      premium_voices_used: updated.premium_voices_used || 0,
       billing_period_start: updated.billing_period_start,
       billing_period_end: updated.billing_period_end,
     }
   }
 
   return {
-    stories_generated: data.stories_generated,
-    premium_voices_used: data.premium_voices_used,
+    stories_generated: data.stories_generated || 0,
+    premium_voices_used: data.premium_voices_used || 0,
     billing_period_start: data.billing_period_start,
     billing_period_end: data.billing_period_end,
   }

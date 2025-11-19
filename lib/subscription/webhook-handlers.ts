@@ -119,8 +119,15 @@ export async function handleCheckoutCompleted(session: Stripe.Checkout.Session) 
 export async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
   const customerId = subscription.customer as string
   const tier = getTierFromSubscription(subscription)
-  const periodStart = new Date(subscription.current_period_start * 1000).toISOString()
-  const periodEnd = new Date(subscription.current_period_end * 1000).toISOString()
+
+  // Type assertion for period dates (they always exist on active subscriptions)
+  const sub = subscription as any
+  const periodStart = sub.current_period_start
+    ? new Date(sub.current_period_start * 1000).toISOString()
+    : new Date().toISOString()
+  const periodEnd = sub.current_period_end
+    ? new Date(sub.current_period_end * 1000).toISOString()
+    : new Date().toISOString()
 
   console.log('🔄 Subscription updated:', {
     subscriptionId: subscription.id,
@@ -227,9 +234,10 @@ export async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   })
 
   // Ensure subscription is marked as active
-  if (invoice.subscription) {
+  const subscriptionId = (invoice as any).subscription
+  if (subscriptionId) {
     const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY!)
-    const subscription = await stripe.subscriptions.retrieve(invoice.subscription)
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId)
 
     await handleSubscriptionUpdated(subscription)
   }
