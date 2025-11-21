@@ -3,6 +3,8 @@ import { auth, currentUser } from '@clerk/nextjs/server'
 import OpenAI from 'openai'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { syncUserToSupabase } from '@/lib/supabase/sync-user'
+import { getUserSubscription } from '@/lib/subscription/manager'
+import { canGenerateStory, trackStoryGeneration, getCurrentUsage } from '@/lib/subscription/usage'
 
 // Initialize OpenAI client (lazy initialization to avoid build-time errors)
 let openai: OpenAI | null = null
@@ -77,21 +79,39 @@ export async function POST(req: Request) {
       clerkUser.emailAddresses[0]?.emailAddress || ''
     )
 
-    // Check subscription status
-    if (user.subscription_status === 'free') {
-      // Check story count for free users (limit to 3 per month)
-      const { count } = await supabaseAdmin
-        .from('stories')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', new Date(new Date().setDate(1)).toISOString())
+    // Get user's subscription details
+    const subscription = await getUserSubscription(user.id)
+    if (!subscription) {
+      return NextResponse.json(
+        { error: 'Unable to retrieve subscription details' },
+        { status: 500 }
+      )
+    }
 
-      if (count && count >= 3) {
-        return NextResponse.json(
-          { error: 'Free tier limit reached. Please upgrade to premium.' },
-          { status: 403 }
-        )
-      }
+    // Check if user can generate a story (usage limits)
+    const usePremiumVoice = false // TODO: Get from request body when voice feature is added
+    const canGenerate = await canGenerateStory(user.id, subscription.tier, usePremiumVoice)
+
+    if (!canGenerate.allowed) {
+      // Get current usage to send to client
+      const periodStart = subscription.current_period_start ? new Date(subscription.current_period_start) : undefined
+      const usage = await getCurrentUsage(user.id, periodStart)
+
+      return NextResponse.json(
+        {
+          error: canGenerate.reason,
+          usage: {
+            stories_generated: usage.stories_generated,
+            stories_limit: canGenerate.storyCheck.limit,
+            premium_voices_used: usage.premium_voices_used,
+            billing_period_end: usage.billing_period_end,
+          },
+          upgrade: {
+            message: 'Upgrade to create more stories',
+          }
+        },
+        { status: 403 }
+      )
     }
 
     const body = await req.json()
@@ -184,12 +204,25 @@ export async function POST(req: Request) {
       })
     }
 
+    // Track story generation for usage limits
+    await trackStoryGeneration(user.id, { usedPremiumVoice: usePremiumVoice })
+
+    // Get updated usage to return to client
+    const periodStart = subscription.current_period_start ? new Date(subscription.current_period_start) : undefined
+    const updatedUsage = await getCurrentUsage(user.id, periodStart)
+
     return NextResponse.json({
       story: {
         id: story.id,
         title,
         content,
         wordCount,
+      },
+      usage: {
+        stories_generated: updatedUsage.stories_generated,
+        stories_remaining: canGenerate.storyCheck.limit - updatedUsage.stories_generated,
+        billing_period_end: updatedUsage.billing_period_end,
+        tier: subscription.tier,
       },
     })
   } catch (err: any) {
