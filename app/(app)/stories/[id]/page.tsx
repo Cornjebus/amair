@@ -28,7 +28,10 @@ export default function StoryDetailPage() {
             id: data.story.id,
             title: data.story.title,
             content: data.story.content,
+            pages: data.story.pages,
             wordCount: data.story.word_count,
+            audioUrl: data.story.audio_url,
+            audioDuration: data.story.audio_duration,
           })
         } else {
           router.push('/stories')

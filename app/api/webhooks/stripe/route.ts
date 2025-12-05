@@ -10,10 +10,12 @@ import {
   handlePaymentFailed,
   handlePaymentSucceeded,
 } from '@/lib/subscription/webhook-handlers'
+import { handleCreditPurchaseCompleted } from '@/lib/credits/webhook-handlers'
 
 export async function POST(req: Request) {
   const body = await req.text()
-  const signature = headers().get('Stripe-Signature') as string
+  const headersList = await headers()
+  const signature = headersList.get('Stripe-Signature') as string
 
   let event: Stripe.Event
 
@@ -24,16 +26,23 @@ export async function POST(req: Request) {
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     )
-  } catch (err: any) {
-    console.error(`Webhook signature verification failed: ${err.message}`)
-    return NextResponse.json({ error: err.message }, { status: 400 })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    console.error(`Webhook signature verification failed: ${message}`)
+    return NextResponse.json({ error: message }, { status: 400 })
   }
 
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
-        await handleCheckoutCompleted(session)
+
+        // Check if this is a credit purchase or subscription
+        if (session.metadata?.type === 'credit_purchase') {
+          await handleCreditPurchaseCompleted(session, supabaseAdmin)
+        } else {
+          await handleCheckoutCompleted(session)
+        }
         break
       }
 
@@ -66,7 +75,8 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({ received: true })
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
     console.error('Error processing webhook:', err)
     return NextResponse.json(
       { error: 'Webhook handler failed' },

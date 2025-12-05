@@ -77,6 +77,241 @@ export type Database = {
           },
         ]
       }
+      credit_accounts: {
+        Row: {
+          balance: number
+          created_at: string | null
+          id: string
+          lifetime_credits: number
+          tier: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string | null
+          id?: string
+          lifetime_credits?: number
+          tier?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string | null
+          id?: string
+          lifetime_credits?: number
+          tier?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_costs: {
+        Row: {
+          base_cost: number
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          operation: string
+          updated_at: string | null
+        }
+        Insert: {
+          base_cost: number
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          operation: string
+          updated_at?: string | null
+        }
+        Update: {
+          base_cost?: number
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          operation?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      credit_packages: {
+        Row: {
+          bonus_credits: number | null
+          created_at: string | null
+          credits: number
+          currency: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          metadata: Json | null
+          name: string
+          price_cents: number
+          sort_order: number | null
+          stripe_price_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          bonus_credits?: number | null
+          created_at?: string | null
+          credits: number
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          metadata?: Json | null
+          name: string
+          price_cents: number
+          sort_order?: number | null
+          stripe_price_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          bonus_credits?: number | null
+          created_at?: string | null
+          credits?: number
+          currency?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          metadata?: Json | null
+          name?: string
+          price_cents?: number
+          sort_order?: number | null
+          stripe_price_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      credit_purchases: {
+        Row: {
+          amount_cents: number
+          bonus_credits: number | null
+          completed_at: string | null
+          created_at: string | null
+          credits_purchased: number
+          currency: string | null
+          id: string
+          metadata: Json | null
+          package_id: string | null
+          status: string | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          bonus_credits?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          credits_purchased: number
+          currency?: string | null
+          id?: string
+          metadata?: Json | null
+          package_id?: string | null
+          status?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          bonus_credits?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          credits_purchased?: number
+          currency?: string | null
+          id?: string
+          metadata?: Json | null
+          package_id?: string | null
+          status?: string | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_purchases_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "credit_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_purchases_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          balance_after: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          metadata: Json | null
+          related_entity_id: string | null
+          related_entity_type: string | null
+          type: Database["public"]["Enums"]["credit_transaction_type"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          type: Database["public"]["Enums"]["credit_transaction_type"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          type?: Database["public"]["Enums"]["credit_transaction_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_challenges: {
         Row: {
           challenge_items: string[]
@@ -330,12 +565,89 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_credit_summary: {
+        Row: {
+          account_created: string | null
+          balance: number | null
+          lifetime_credits: number | null
+          tier: string | null
+          total_purchased: number | null
+          total_spent: number | null
+          total_transactions: number | null
+          user_id: string | null
+        }
+        Insert: {
+          account_created?: string | null
+          balance?: number | null
+          lifetime_credits?: number | null
+          tier?: string | null
+          total_purchased?: never
+          total_spent?: never
+          total_transactions?: never
+          user_id?: string | null
+        }
+        Update: {
+          account_created?: string | null
+          balance?: number | null
+          lifetime_credits?: number | null
+          tier?: string | null
+          total_purchased?: never
+          total_spent?: never
+          total_transactions?: never
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
-      [_ in never]: never
+      add_credits: {
+        Args: {
+          p_amount: number
+          p_description: string
+          p_metadata?: Json
+          p_type: Database["public"]["Enums"]["credit_transaction_type"]
+          p_user_id: string
+        }
+        Returns: {
+          error_message: string
+          new_balance: number
+          success: boolean
+          transaction_id: string
+        }[]
+      }
+      deduct_credits: {
+        Args: {
+          p_amount: number
+          p_reason: string
+          p_related_entity_id?: string
+          p_related_entity_type?: string
+          p_user_id: string
+        }
+        Returns: {
+          error_message: string
+          new_balance: number
+          success: boolean
+          transaction_id: string
+        }[]
+      }
     }
     Enums: {
+      credit_transaction_type:
+        | "purchase"
+        | "usage"
+        | "bonus"
+        | "refund"
+        | "gift"
+        | "subscription"
+        | "adjustment"
       story_length: "quick" | "medium" | "epic"
       story_tone: "bedtime-calm" | "funny" | "adventure" | "mystery"
       subscription_status: "free" | "premium" | "trial"
@@ -474,6 +786,15 @@ export const Constants = {
   },
   public: {
     Enums: {
+      credit_transaction_type: [
+        "purchase",
+        "usage",
+        "bonus",
+        "refund",
+        "gift",
+        "subscription",
+        "adjustment",
+      ],
       story_length: ["quick", "medium", "epic"],
       story_tone: ["bedtime-calm", "funny", "adventure", "mystery"],
       subscription_status: ["free", "premium", "trial"],

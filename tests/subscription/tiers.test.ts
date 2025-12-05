@@ -4,7 +4,7 @@
  * Phase 1: Test tier configuration and feature access
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect } from 'vitest'
 import {
   getTierLimits,
   getTierInfo,

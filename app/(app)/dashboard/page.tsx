@@ -5,9 +5,7 @@ import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkles, BookOpen, Zap, Crown } from 'lucide-react'
-import { supabase } from '@/lib/supabase/client'
-import STRIPE_CONFIG from '@/lib/config/stripe'
+import { Sparkles, BookOpen, Zap, Crown, Coins, Plus } from 'lucide-react'
 
 export default function DashboardPage() {
   const { user } = useUser()
@@ -15,6 +13,11 @@ export default function DashboardPage() {
     totalStories: 0,
     thisMonth: 0,
     subscriptionStatus: 'free',
+  })
+  const [credits, setCredits] = useState({
+    balance: 0,
+    tier: 'free',
+    lifetimeCredits: 0,
   })
   const [recentStories, setRecentStories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -27,10 +30,14 @@ export default function DashboardPage() {
         // Sync user and get stories via API
         await fetch('/api/sync-user', { method: 'POST' })
 
-        const response = await fetch('/api/stories')
-        const data = await response.json()
+        // Fetch stories and credits in parallel
+        const [storiesResponse, creditsResponse] = await Promise.all([
+          fetch('/api/stories'),
+          fetch('/api/credits'),
+        ])
 
-        if (response.ok) {
+        if (storiesResponse.ok) {
+          const data = await storiesResponse.json()
           const stories = data.stories || []
           const now = new Date()
           const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -39,16 +46,25 @@ export default function DashboardPage() {
             new Date(story.created_at) >= startOfMonth
           )
 
-          // Get user subscription status via sync-user
-          const userResponse = await fetch('/api/sync-user', { method: 'POST' })
-          const userData = await userResponse.json()
-
           setStats({
             totalStories: stories.length,
             thisMonth: monthStories.length,
-            subscriptionStatus: userData.user?.subscription_status || 'free',
+            subscriptionStatus: 'free', // Will be updated from credits
           })
           setRecentStories(stories.slice(0, 3))
+        }
+
+        if (creditsResponse.ok) {
+          const creditsData = await creditsResponse.json()
+          setCredits({
+            balance: creditsData.balance || 0,
+            tier: creditsData.tier || 'free',
+            lifetimeCredits: creditsData.lifetimeCredits || 0,
+          })
+          setStats(prev => ({
+            ...prev,
+            subscriptionStatus: creditsData.tier || 'free',
+          }))
         }
       } catch (error) {
         console.error('Error loading dashboard:', error)
@@ -86,7 +102,26 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-4 gap-6">
+        {/* Credits Card - Prominent */}
+        <Card className="bg-gradient-to-br from-lavender-50 to-skyblue-50 border-lavender-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-lavender-600 mb-1">Credits Balance</p>
+                <p className="text-3xl font-bold text-lavender-900">{credits.balance.toLocaleString()}</p>
+              </div>
+              <Coins className="h-10 w-10 text-lavender-500" />
+            </div>
+            <Link href="/credits">
+              <Button variant="outline" size="sm" className="mt-4 w-full">
+                <Plus className="h-4 w-4 mr-2" />
+                Buy Credits
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -115,79 +150,34 @@ export default function DashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lavender-600 mb-1">Plan</p>
+                <p className="text-sm text-lavender-600 mb-1">Account Tier</p>
                 <p className="text-2xl font-bold text-lavender-900 capitalize">
-                  {stats.subscriptionStatus}
+                  {credits.tier}
                 </p>
               </div>
-              <Crown className={`h-10 w-10 ${stats.subscriptionStatus === 'premium' ? 'text-yellow-400' : 'text-lavender-400'}`} />
+              <Crown className={`h-10 w-10 ${credits.tier !== 'free' ? 'text-yellow-400' : 'text-lavender-400'}`} />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Upgrade Banner for Free Users */}
-      {stats.subscriptionStatus === 'free' && (
+      {/* Low Credits Banner */}
+      {credits.balance < 10 && (
         <Card className="bg-gradient-to-r from-lavender-500 to-skyblue-500 text-white border-none">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-playfair font-bold mb-2">
-                  Unlock Unlimited Stories
+                  Running Low on Credits
                 </h3>
                 <p className="text-lavender-50 mb-4">
-                  Free users: {stats.thisMonth}/3 stories this month
+                  You have {credits.balance} credits remaining. Buy more to continue creating magical stories!
                 </p>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  onClick={async () => {
-                    try {
-                      console.log('[Upgrade] Starting checkout process')
-                      console.log('[Upgrade] Using price ID:', STRIPE_CONFIG.monthlyPriceId)
-
-                      if (!STRIPE_CONFIG.monthlyPriceId) {
-                        console.error('[Upgrade] Price ID is not configured!')
-                        alert('Configuration error: Price ID is missing. Please contact support.')
-                        return
-                      }
-
-                      const response = await fetch('/api/create-checkout-session', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          priceId: STRIPE_CONFIG.monthlyPriceId,
-                        }),
-                      })
-
-                      console.log('[Upgrade] API response status:', response.status)
-
-                      if (!response.ok) {
-                        const error = await response.json()
-                        console.error('[Upgrade] API error:', error)
-                        alert(`Error creating checkout session: ${error.error || 'Unknown error'}`)
-                        return
-                      }
-
-                      const data = await response.json()
-                      console.log('[Upgrade] API response data:', data)
-
-                      if (data.url) {
-                        console.log('[Upgrade] Redirecting to Stripe checkout...')
-                        // Use Stripe's URL directly - it includes encrypted session data in hash
-                        window.location.href = data.url
-                      } else {
-                        console.error('[Upgrade] No checkout URL received from API')
-                        alert('Error: No checkout URL received. Please try again.')
-                      }
-                    } catch (error) {
-                      console.error('[Upgrade] Error creating checkout:', error)
-                      alert('An unexpected error occurred. Please try again.')
-                    }
-                  }}
-                >
-                  Upgrade to Premium <Crown className="ml-2 h-5 w-5" />
-                </Button>
+                <Link href="/credits">
+                  <Button variant="secondary" size="lg">
+                    Buy Credits <Coins className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
               </div>
               <div className="text-6xl animate-flutter">🦋</div>
             </div>
