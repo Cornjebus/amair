@@ -5,19 +5,64 @@ import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkles, BookOpen, Zap, Crown, Coins, Plus } from 'lucide-react'
+import { Sparkles, BookOpen, Zap, Crown, Star, ArrowRight, Gift, Mic } from 'lucide-react'
+
+// Subscription tier configuration
+const TIER_CONFIG = {
+  free: {
+    name: 'Free',
+    storiesPerMonth: 3,
+    premiumVoices: 0,
+    color: 'lavender',
+    icon: BookOpen,
+  },
+  dream_weaver: {
+    name: 'Dream Weaver',
+    storiesPerMonth: 10,
+    premiumVoices: 3,
+    color: 'skyblue',
+    icon: Star,
+  },
+  magic_circle: {
+    name: 'Magic Circle',
+    storiesPerMonth: 30,
+    premiumVoices: 15,
+    color: 'lavender',
+    icon: Sparkles,
+  },
+  enchanted_library: {
+    name: 'Enchanted Library',
+    storiesPerMonth: 60,
+    premiumVoices: 60,
+    color: 'yellow',
+    icon: Crown,
+  },
+}
+
+interface SubscriptionData {
+  tier: keyof typeof TIER_CONFIG
+  status: string
+  storiesUsed: number
+  storiesLimit: number
+  premiumVoicesUsed: number
+  premiumVoicesLimit: number
+  currentPeriodEnd: string | null
+}
 
 export default function DashboardPage() {
   const { user } = useUser()
   const [stats, setStats] = useState({
     totalStories: 0,
     thisMonth: 0,
-    subscriptionStatus: 'free',
   })
-  const [credits, setCredits] = useState({
-    balance: 0,
+  const [subscription, setSubscription] = useState<SubscriptionData>({
     tier: 'free',
-    lifetimeCredits: 0,
+    status: 'free',
+    storiesUsed: 0,
+    storiesLimit: 3,
+    premiumVoicesUsed: 0,
+    premiumVoicesLimit: 0,
+    currentPeriodEnd: null,
   })
   const [recentStories, setRecentStories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -30,10 +75,10 @@ export default function DashboardPage() {
         // Sync user and get stories via API
         await fetch('/api/sync-user', { method: 'POST' })
 
-        // Fetch stories and credits in parallel
-        const [storiesResponse, creditsResponse] = await Promise.all([
+        // Fetch stories and subscription in parallel
+        const [storiesResponse, subscriptionResponse] = await Promise.all([
           fetch('/api/stories'),
-          fetch('/api/credits'),
+          fetch('/api/subscriptions'),
         ])
 
         if (storiesResponse.ok) {
@@ -49,22 +94,21 @@ export default function DashboardPage() {
           setStats({
             totalStories: stories.length,
             thisMonth: monthStories.length,
-            subscriptionStatus: 'free', // Will be updated from credits
           })
           setRecentStories(stories.slice(0, 3))
         }
 
-        if (creditsResponse.ok) {
-          const creditsData = await creditsResponse.json()
-          setCredits({
-            balance: creditsData.balance || 0,
-            tier: creditsData.tier || 'free',
-            lifetimeCredits: creditsData.lifetimeCredits || 0,
+        if (subscriptionResponse.ok) {
+          const subData = await subscriptionResponse.json()
+          setSubscription({
+            tier: subData.tier || 'free',
+            status: subData.status || 'free',
+            storiesUsed: subData.storiesUsed || 0,
+            storiesLimit: subData.limits?.storiesPerMonth || 3,
+            premiumVoicesUsed: subData.premiumVoicesUsed || 0,
+            premiumVoicesLimit: subData.limits?.premiumVoicesPerMonth || 0,
+            currentPeriodEnd: subData.currentPeriodEnd || null,
           })
-          setStats(prev => ({
-            ...prev,
-            subscriptionStatus: creditsData.tier || 'free',
-          }))
         }
       } catch (error) {
         console.error('Error loading dashboard:', error)
@@ -89,6 +133,12 @@ export default function DashboardPage() {
     )
   }
 
+  const tierConfig = TIER_CONFIG[subscription.tier] || TIER_CONFIG.free
+  const TierIcon = tierConfig.icon
+  const storiesRemaining = Math.max(0, subscription.storiesLimit - subscription.storiesUsed)
+  const voicesRemaining = Math.max(0, subscription.premiumVoicesLimit - subscription.premiumVoicesUsed)
+  const isLowOnStories = storiesRemaining <= 2 && subscription.tier !== 'enchanted_library'
+
   return (
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Welcome Section */}
@@ -103,22 +153,28 @@ export default function DashboardPage() {
 
       {/* Stats Cards */}
       <div className="grid md:grid-cols-4 gap-6">
-        {/* Credits Card - Prominent */}
+        {/* Stories This Month - Usage Card */}
         <Card className="bg-gradient-to-br from-lavender-50 to-skyblue-50 border-lavender-200">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lavender-600 mb-1">Credits Balance</p>
-                <p className="text-3xl font-bold text-lavender-900">{credits.balance.toLocaleString()}</p>
+                <p className="text-sm text-lavender-600 mb-1">Stories This Month</p>
+                <p className="text-3xl font-bold text-lavender-900">
+                  {subscription.storiesUsed}
+                  <span className="text-lg font-normal text-lavender-500">/{subscription.storiesLimit}</span>
+                </p>
               </div>
-              <Coins className="h-10 w-10 text-lavender-500" />
+              <BookOpen className="h-10 w-10 text-lavender-500" />
             </div>
-            <Link href="/credits">
-              <Button variant="outline" size="sm" className="mt-4 w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Buy Credits
-              </Button>
-            </Link>
+            <div className="mt-3">
+              <div className="w-full bg-lavender-200 rounded-full h-2">
+                <div
+                  className="bg-lavender-500 h-2 rounded-full transition-all"
+                  style={{ width: `${Math.min(100, (subscription.storiesUsed / subscription.storiesLimit) * 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-lavender-500 mt-1">{storiesRemaining} stories remaining</p>
+            </div>
           </CardContent>
         </Card>
 
@@ -138,44 +194,57 @@ export default function DashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lavender-600 mb-1">This Month</p>
-                <p className="text-3xl font-bold text-lavender-900">{stats.thisMonth}</p>
+                <p className="text-sm text-lavender-600 mb-1">Premium Voices</p>
+                <p className="text-3xl font-bold text-lavender-900">
+                  {subscription.premiumVoicesUsed}
+                  <span className="text-lg font-normal text-lavender-500">/{subscription.premiumVoicesLimit}</span>
+                </p>
               </div>
-              <Zap className="h-10 w-10 text-skyblue-400" />
+              <Mic className="h-10 w-10 text-skyblue-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className={subscription.tier !== 'free' ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50' : ''}>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lavender-600 mb-1">Account Tier</p>
-                <p className="text-2xl font-bold text-lavender-900 capitalize">
-                  {credits.tier}
+                <p className="text-sm text-lavender-600 mb-1">Your Plan</p>
+                <p className="text-2xl font-bold text-lavender-900">
+                  {tierConfig.name}
                 </p>
               </div>
-              <Crown className={`h-10 w-10 ${credits.tier !== 'free' ? 'text-yellow-400' : 'text-lavender-400'}`} />
+              <TierIcon className={`h-10 w-10 ${subscription.tier !== 'free' ? 'text-yellow-500' : 'text-lavender-400'}`} />
             </div>
+            {subscription.tier === 'free' && (
+              <Link href="/pricing">
+                <Button variant="outline" size="sm" className="mt-3 w-full text-xs">
+                  Upgrade Plan
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Low Credits Banner */}
-      {credits.balance < 10 && (
+      {/* Low Stories Warning / Upgrade Banner */}
+      {isLowOnStories && (
         <Card className="bg-gradient-to-r from-lavender-500 to-skyblue-500 text-white border-none">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-playfair font-bold mb-2">
-                  Running Low on Credits
+                  {storiesRemaining === 0 ? "You've Used All Your Stories!" : "Running Low on Stories"}
                 </h3>
                 <p className="text-lavender-50 mb-4">
-                  You have {credits.balance} credits remaining. Buy more to continue creating magical stories!
+                  {storiesRemaining === 0
+                    ? "Upgrade your plan to continue creating magical bedtime stories."
+                    : `You have ${storiesRemaining} ${storiesRemaining === 1 ? 'story' : 'stories'} remaining this month. Upgrade for more!`
+                  }
                 </p>
-                <Link href="/credits">
+                <Link href="/pricing">
                   <Button variant="secondary" size="lg">
-                    Buy Credits <Coins className="ml-2 h-5 w-5" />
+                    View Plans <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
               </div>
@@ -184,6 +253,26 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Gift Banner - Show for all users */}
+      <Card className="bg-gradient-to-r from-peach-100 to-mint-100 border-peach-200">
+        <CardContent className="py-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Gift className="h-10 w-10 text-peach-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Give the Gift of Stories</h3>
+                <p className="text-gray-600">Perfect for grandparents, aunts, uncles & friends!</p>
+              </div>
+            </div>
+            <Link href="/gifts">
+              <Button variant="outline" className="border-peach-300 hover:bg-peach-50">
+                Shop Gifts <Gift className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">

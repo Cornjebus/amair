@@ -4,7 +4,21 @@ import { useEffect, useState } from 'react'
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Coins, Sparkles } from 'lucide-react'
+import { Crown, Star, Sparkles, BookOpen } from 'lucide-react'
+
+// Tier display configuration
+const TIER_DISPLAY = {
+  free: { name: 'Free', icon: BookOpen, color: 'text-gray-600', bg: 'bg-gray-100' },
+  dream_weaver: { name: 'Dream Weaver', icon: Star, color: 'text-skyblue-600', bg: 'bg-skyblue-100' },
+  magic_circle: { name: 'Magic Circle', icon: Sparkles, color: 'text-lavender-600', bg: 'bg-lavender-100' },
+  enchanted_library: { name: 'Enchanted Library', icon: Crown, color: 'text-yellow-600', bg: 'bg-yellow-100' },
+}
+
+interface SubscriptionInfo {
+  tier: keyof typeof TIER_DISPLAY
+  storiesRemaining: number
+  storiesLimit: number
+}
 
 export default function AppLayout({
   children,
@@ -12,24 +26,31 @@ export default function AppLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const [credits, setCredits] = useState<number | null>(null)
+  const [subscription, setSubscription] = useState<SubscriptionInfo | null>(null)
 
   useEffect(() => {
-    async function fetchCredits() {
+    async function fetchSubscription() {
       try {
-        const response = await fetch('/api/credits')
+        const response = await fetch('/api/subscriptions')
         if (response.ok) {
           const data = await response.json()
-          setCredits(data.balance)
+          setSubscription({
+            tier: data.tier || 'free',
+            storiesRemaining: Math.max(0, (data.limits?.storiesPerMonth || 3) - (data.storiesUsed || 0)),
+            storiesLimit: data.limits?.storiesPerMonth || 3,
+          })
         }
       } catch (error) {
-        console.error('Error fetching credits:', error)
+        console.error('Error fetching subscription:', error)
       }
     }
-    fetchCredits()
+    fetchSubscription()
   }, [pathname]) // Refetch when route changes
 
   const isActive = (path: string) => pathname === path
+
+  const tierInfo = subscription ? TIER_DISPLAY[subscription.tier] || TIER_DISPLAY.free : TIER_DISPLAY.free
+  const TierIcon = tierInfo.icon
 
   return (
     <div className="min-h-screen">
@@ -76,16 +97,22 @@ export default function AppLayout({
               My Stories
             </Link>
 
-            {/* Credit Badge */}
+            {/* Subscription Badge */}
             <Link
-              href="/credits"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-lavender-100 to-skyblue-100 border border-lavender-200 hover:border-lavender-300 transition-colors"
+              href="/pricing"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${tierInfo.bg} border border-${tierInfo.color.replace('text-', '')}/20 hover:opacity-80 transition-opacity`}
             >
-              <Coins className="h-4 w-4 text-lavender-600" />
-              <span className="text-sm font-semibold text-lavender-800 tabular-nums">
-                {credits !== null ? credits.toLocaleString() : '...'}
-              </span>
-              <span className="text-xs text-lavender-600">credits</span>
+              <TierIcon className={`h-4 w-4 ${tierInfo.color}`} />
+              {subscription ? (
+                <>
+                  <span className={`text-sm font-semibold ${tierInfo.color} tabular-nums`}>
+                    {subscription.storiesRemaining}
+                  </span>
+                  <span className="text-xs text-gray-500">stories left</span>
+                </>
+              ) : (
+                <span className="text-xs text-gray-500">...</span>
+              )}
             </Link>
 
             <UserButton afterSignOutUrl="/" />

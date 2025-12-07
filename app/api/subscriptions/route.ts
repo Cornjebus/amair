@@ -56,16 +56,21 @@ export async function GET() {
       const freeLimits = TIER_CONFIG.free;
       return NextResponse.json({
         tier: 'free',
-        billing_cycle: 'free',
+        billingCycle: 'free',
         status: 'active',
-        current_period_start: new Date().toISOString(),
-        current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        stories_used: 0,
-        premium_voices_used: 0,
-        limits: freeLimits,
-        stories_remaining: freeLimits.monthly_stories,
-        premium_voices_remaining: freeLimits.monthly_premium_voices,
-        cancel_at_period_end: false,
+        currentPeriodStart: new Date().toISOString(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        storiesUsed: 0,
+        premiumVoicesUsed: 0,
+        limits: {
+          storiesPerMonth: freeLimits.monthly_stories,
+          premiumVoicesPerMonth: freeLimits.monthly_premium_voices,
+          savedStories: freeLimits.max_saved_stories,
+          childProfiles: freeLimits.max_children,
+        },
+        storiesRemaining: freeLimits.monthly_stories,
+        premiumVoicesRemaining: freeLimits.monthly_premium_voices,
+        cancelAtPeriodEnd: false,
       });
     }
 
@@ -74,10 +79,24 @@ export async function GET() {
     const limits = TIER_CONFIG[tier] || TIER_CONFIG.free;
 
     return NextResponse.json({
-      ...subscription,
-      limits,
-      stories_remaining: Math.max(0, limits.monthly_stories - subscription.stories_used),
-      premium_voices_remaining: Math.max(0, limits.monthly_premium_voices - subscription.premium_voices_used),
+      tier: subscription.tier,
+      billingCycle: subscription.billing_cycle,
+      status: subscription.status,
+      currentPeriodStart: subscription.current_period_start,
+      currentPeriodEnd: subscription.current_period_end,
+      storiesUsed: subscription.stories_used,
+      premiumVoicesUsed: subscription.premium_voices_used,
+      limits: {
+        storiesPerMonth: limits.monthly_stories,
+        premiumVoicesPerMonth: limits.monthly_premium_voices,
+        savedStories: limits.max_saved_stories,
+        childProfiles: limits.max_children,
+      },
+      storiesRemaining: Math.max(0, limits.monthly_stories - subscription.stories_used),
+      premiumVoicesRemaining: Math.max(0, limits.monthly_premium_voices - subscription.premium_voices_used),
+      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      stripeSubscriptionId: subscription.stripe_subscription_id,
+      stripeCustomerId: subscription.stripe_customer_id,
     });
   } catch (error) {
     captureError(error as Error, { action: 'get_subscription' });
