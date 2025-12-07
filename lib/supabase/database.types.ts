@@ -347,6 +347,148 @@ export type Database = {
           },
         ]
       }
+      gift_packages: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          display_order: number | null
+          duration_months: number
+          id: string
+          is_active: boolean | null
+          name: string
+          price_cents: number
+          slug: string
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          display_order?: number | null
+          duration_months: number
+          id?: string
+          is_active?: boolean | null
+          name: string
+          price_cents: number
+          slug: string
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          display_order?: number | null
+          duration_months?: number
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          price_cents?: number
+          slug?: string
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Relationships: []
+      }
+      gift_subscriptions: {
+        Row: {
+          created_at: string | null
+          currency: string | null
+          delivery_date: string | null
+          duration_months: number
+          expires_at: string
+          gift_message: string | null
+          gift_package_id: string
+          id: string
+          price_paid_cents: number
+          purchased_at: string | null
+          purchaser_email: string
+          purchaser_name: string | null
+          purchaser_user_id: string | null
+          recipient_email: string | null
+          recipient_name: string | null
+          recipient_user_id: string | null
+          redeemed_at: string | null
+          redemption_code: string
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          currency?: string | null
+          delivery_date?: string | null
+          duration_months: number
+          expires_at?: string
+          gift_message?: string | null
+          gift_package_id: string
+          id?: string
+          price_paid_cents: number
+          purchased_at?: string | null
+          purchaser_email: string
+          purchaser_name?: string | null
+          purchaser_user_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_user_id?: string | null
+          redeemed_at?: string | null
+          redemption_code: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          currency?: string | null
+          delivery_date?: string | null
+          duration_months?: number
+          expires_at?: string
+          gift_message?: string | null
+          gift_package_id?: string
+          id?: string
+          price_paid_cents?: number
+          purchased_at?: string | null
+          purchaser_email?: string
+          purchaser_name?: string | null
+          purchaser_user_id?: string | null
+          recipient_email?: string | null
+          recipient_name?: string | null
+          recipient_user_id?: string | null
+          redeemed_at?: string | null
+          redemption_code?: string
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_subscriptions_gift_package_id_fkey"
+            columns: ["gift_package_id"]
+            isOneToOne: false
+            referencedRelation: "gift_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_subscriptions_purchaser_user_id_fkey"
+            columns: ["purchaser_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gift_subscriptions_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stories: {
         Row: {
           audio_url: string | null
@@ -435,6 +577,83 @@ export type Database = {
           },
         ]
       }
+      subscription_history: {
+        Row: {
+          billing_cycle: string | null
+          created_at: string | null
+          event_type: string
+          from_tier: Database["public"]["Enums"]["subscription_tier"] | null
+          id: string
+          metadata: Json | null
+          to_tier: Database["public"]["Enums"]["subscription_tier"] | null
+          user_id: string
+        }
+        Insert: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          event_type: string
+          from_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          id?: string
+          metadata?: Json | null
+          to_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string | null
+          created_at?: string | null
+          event_type?: string
+          from_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          id?: string
+          metadata?: Json | null
+          to_tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscription_prices: {
+        Row: {
+          billing_cycle: string
+          created_at: string | null
+          currency: string | null
+          id: string
+          is_active: boolean | null
+          price_cents: number
+          stripe_price_id: string | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string | null
+        }
+        Insert: {
+          billing_cycle: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          price_cents: number
+          stripe_price_id?: string | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string | null
+        }
+        Update: {
+          billing_cycle?: string
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_active?: boolean | null
+          price_cents?: number
+          stripe_price_id?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       tier_limits: {
         Row: {
           created_at: string | null
@@ -501,6 +720,71 @@ export type Database = {
             foreignKeyName: "usage_tracking_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_subscriptions: {
+        Row: {
+          billing_cycle: string | null
+          cancel_at_period_end: boolean | null
+          canceled_at: string | null
+          created_at: string | null
+          current_period_end: string
+          current_period_start: string
+          gift_subscription_id: string | null
+          id: string
+          premium_voices_used: number | null
+          status: string
+          stories_used: number | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          billing_cycle?: string | null
+          cancel_at_period_end?: boolean | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string
+          current_period_start?: string
+          gift_subscription_id?: string | null
+          id?: string
+          premium_voices_used?: number | null
+          status?: string
+          stories_used?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          billing_cycle?: string | null
+          cancel_at_period_end?: boolean | null
+          canceled_at?: string | null
+          created_at?: string | null
+          current_period_end?: string
+          current_period_start?: string
+          gift_subscription_id?: string | null
+          id?: string
+          premium_voices_used?: number | null
+          status?: string
+          stories_used?: number | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
@@ -623,6 +907,15 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      can_generate_story: {
+        Args: { p_use_premium_voice?: boolean; p_user_id: string }
+        Returns: {
+          allowed: boolean
+          premium_voices_remaining: number
+          reason: string
+          stories_remaining: number
+        }[]
+      }
       deduct_credits: {
         Args: {
           p_amount: number
@@ -637,6 +930,29 @@ export type Database = {
           success: boolean
           transaction_id: string
         }[]
+      }
+      generate_gift_code: { Args: never; Returns: string }
+      record_story_generation: {
+        Args: { p_used_premium_voice?: boolean; p_user_id: string }
+        Returns: {
+          premium_voices_remaining: number
+          stories_remaining: number
+          success: boolean
+        }[]
+      }
+      redeem_gift_code: {
+        Args: { p_redemption_code: string; p_user_id: string }
+        Returns: {
+          duration_months: number
+          error_message: string
+          new_period_end: string
+          success: boolean
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }[]
+      }
+      reset_subscription_usage: {
+        Args: { p_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
