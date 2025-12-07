@@ -9,8 +9,9 @@ import {
   handleSubscriptionDeleted,
   handlePaymentFailed,
   handlePaymentSucceeded,
+  handleGiftPurchaseCompleted,
+  handleNewSubscription,
 } from '@/lib/subscription/webhook-handlers'
-import { handleCreditPurchaseCompleted } from '@/lib/credits/webhook-handlers'
 
 export async function POST(req: Request) {
   const body = await req.text()
@@ -32,15 +33,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status: 400 })
   }
 
+  console.log(`[Webhook] Received event: ${event.type}`)
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session
+        const type = session.metadata?.type
 
-        // Check if this is a credit purchase or subscription
-        if (session.metadata?.type === 'credit_purchase') {
-          await handleCreditPurchaseCompleted(session, supabaseAdmin)
+        if (type === 'gift_purchase') {
+          // Handle gift subscription purchase
+          await handleGiftPurchaseCompleted(session, supabaseAdmin)
+        } else if (type === 'subscription' || session.mode === 'subscription') {
+          // Handle new subscription checkout
+          await handleNewSubscription(session, supabaseAdmin)
         } else {
+          // Legacy/fallback handling
           await handleCheckoutCompleted(session)
         }
         break
@@ -71,13 +79,13 @@ export async function POST(req: Request) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`)
+        console.log(`[Webhook] Unhandled event type: ${event.type}`)
     }
 
     return NextResponse.json({ received: true })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Unknown error'
-    console.error('Error processing webhook:', err)
+    console.error('[Webhook] Error processing webhook:', err)
     return NextResponse.json(
       { error: 'Webhook handler failed' },
       { status: 500 }

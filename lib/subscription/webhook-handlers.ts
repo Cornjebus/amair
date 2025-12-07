@@ -1,11 +1,13 @@
 /**
  * Stripe Webhook Handlers for Subscription System
  *
- * Handles all Stripe webhook events related to subscriptions
+ * Handles all Stripe webhook events related to subscriptions and gifts
  */
 
 import Stripe from 'stripe'
+import { SupabaseClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { captureError, captureMessage } from '@/lib/monitoring/sentry'
 import type { SubscriptionTier } from './tiers'
 
 /**
@@ -240,5 +242,166 @@ export async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
     const subscription = await stripe.subscriptions.retrieve(subscriptionId)
 
     await handleSubscriptionUpdated(subscription)
+  }
+}
+
+// =============================================================================
+// NEW SUBSCRIPTION SYSTEM HANDLERS
+// =============================================================================
+
+/**
+ * Handle new subscription checkout completion
+ */
+export async function handleNewSubscription(
+  session: Stripe.Checkout.Session,
+  supabase: SupabaseClient
+) {
+  const metadata = session.metadata
+  if (!metadata) {
+    console.error('[Webhook] No metadata in subscription checkout session')
+    return
+  }
+
+  const userId = metadata.userId
+  const tier = metadata.tier as SubscriptionTier
+  const billingCycle = metadata.billingCycle as 'monthly' | 'annual'
+  const stripeSubscriptionId = session.subscription as string
+  const stripeCustomerId = session.customer as string
+
+  if (!userId || !tier) {
+    captureMessage('Invalid subscription checkout metadata', 'warning', {
+      sessionId: session.id,
+      metadata,
+    })
+    return
+  }
+
+  try {
+    // Get subscription details from Stripe
+    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY!)
+    const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId)
+
+    const periodStart = new Date(subscription.current_period_start * 1000).toISOString()
+    const periodEnd = new Date(subscription.current_period_end * 1000).toISOString()
+
+    // Create or update user_subscriptions record
+    const { error } = await supabase
+      .from('user_subscriptions')
+      .upsert({
+        user_id: userId,
+        tier,
+        billing_cycle: billingCycle,
+        status: 'active',
+        current_period_start: periodStart,
+        current_period_end: periodEnd,
+        stories_used: 0,
+        premium_voices_used: 0,
+        stripe_subscription_id: stripeSubscriptionId,
+        stripe_customer_id: stripeCustomerId,
+        cancel_at_period_end: false,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id',
+      })
+
+    if (error) throw error
+
+    // Also update the users table for backward compatibility
+    await supabase
+      .from('users')
+      .update({
+        subscription_tier: tier,
+        subscription_status: 'premium',
+        subscription_period_start: periodStart,
+        current_period_end: periodEnd,
+        stripe_customer_id: stripeCustomerId,
+        stripe_subscription_id: stripeSubscriptionId,
+      })
+      .eq('id', userId)
+
+    // Record in subscription history
+    await supabase.from('subscription_history').insert({
+      user_id: userId,
+      event_type: 'created',
+      to_tier: tier,
+      billing_cycle: billingCycle,
+      metadata: {
+        stripeSessionId: session.id,
+        stripeSubscriptionId,
+      },
+    })
+
+    captureMessage('Subscription created', 'info', {
+      userId,
+      tier,
+      billingCycle,
+    })
+
+    console.log(`[Webhook] Subscription created for user ${userId}: ${tier} (${billingCycle})`)
+  } catch (error) {
+    captureError(error as Error, {
+      action: 'handle_new_subscription',
+      userId,
+      metadata: { sessionId: session.id },
+    })
+    throw error
+  }
+}
+
+/**
+ * Handle gift purchase checkout completion
+ */
+export async function handleGiftPurchaseCompleted(
+  session: Stripe.Checkout.Session,
+  supabase: SupabaseClient
+) {
+  const metadata = session.metadata
+  if (!metadata || metadata.type !== 'gift_purchase') {
+    console.log('[Webhook] Not a gift purchase')
+    return
+  }
+
+  const redemptionCode = metadata.redemptionCode
+  const paymentIntentId = session.payment_intent as string
+
+  if (!redemptionCode) {
+    captureMessage('No redemption code in gift checkout', 'warning', {
+      sessionId: session.id,
+    })
+    return
+  }
+
+  try {
+    // Update the gift subscription record to confirm payment
+    const { data: gift, error } = await supabase
+      .from('gift_subscriptions')
+      .update({
+        stripe_payment_intent_id: paymentIntentId,
+        status: 'pending', // Ready for redemption
+        updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_checkout_session_id', session.id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    captureMessage('Gift purchase completed', 'info', {
+      giftId: gift?.id,
+      redemptionCode,
+      tier: metadata.tier,
+      purchaserEmail: metadata.purchaserEmail,
+    })
+
+    console.log(`[Webhook] Gift purchase completed: ${redemptionCode}`)
+
+    // TODO: Send email to purchaser with redemption code
+    // TODO: If recipient email provided and delivery date is today/past, send gift email
+  } catch (error) {
+    captureError(error as Error, {
+      action: 'handle_gift_purchase',
+      metadata: { sessionId: session.id },
+    })
+    throw error
   }
 }

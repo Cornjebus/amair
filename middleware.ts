@@ -5,9 +5,13 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/pricing(.*)',           // Public: pricing page
+  '/gifts(.*)',             // Public: gift purchase and redemption
   '/api/webhooks(.*)',
   '/api/health(.*)',
-  '/api/credits/packages(.*)', // Public: credit packages info
+  '/api/gifts/packages(.*)', // Public: gift packages info
+  '/api/gifts/redeem(.*)',   // Public: gift code validation (GET only)
+  '/api/subscriptions/prices(.*)', // Public: subscription prices
 ])
 
 export default clerkMiddleware((auth, request) => {

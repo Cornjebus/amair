@@ -1,0 +1,501 @@
+/**
+ * Gift Subscription Service
+ *
+ * Handles gift package management, purchase flow, and redemption
+ */
+
+import { supabaseAdmin } from '@/lib/supabase/server';
+import { getStripe } from '@/lib/stripe/server';
+import { captureError, captureMessage } from '@/lib/monitoring/sentry';
+import type {
+  GiftPackage,
+  GiftSubscription,
+  GiftPurchaseInput,
+  GiftRedemptionResult,
+  SubscriptionTier,
+} from './types';
+
+// =============================================================================
+// GIFT PACKAGES
+// =============================================================================
+
+/**
+ * Get all active gift packages
+ */
+export async function getGiftPackages(): Promise<GiftPackage[]> {
+  // Cast to any until migration runs and types are regenerated
+  const { data, error } = await (supabaseAdmin as any)
+    .from('gift_packages')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true }) as { data: GiftPackage[] | null; error: any };
+
+  if (error) {
+    captureError(error, { action: 'get_gift_packages' });
+    throw error;
+  }
+
+  return data || [];
+}
+
+/**
+ * Get a specific gift package by ID or slug
+ */
+export async function getGiftPackage(
+  idOrSlug: string
+): Promise<GiftPackage | null> {
+  // Try by ID first (cast to any until migration runs)
+  let { data, error } = await (supabaseAdmin as any)
+    .from('gift_packages')
+    .select('*')
+    .eq('id', idOrSlug)
+    .eq('is_active', true)
+    .single() as { data: GiftPackage | null; error: any };
+
+  // If not found, try by slug
+  if (error || !data) {
+    const result = await (supabaseAdmin as any)
+      .from('gift_packages')
+      .select('*')
+      .eq('slug', idOrSlug)
+      .eq('is_active', true)
+      .single() as { data: GiftPackage | null; error: any };
+
+    data = result.data;
+    error = result.error;
+  }
+
+  if (error && error.code !== 'PGRST116') {
+    captureError(error, { action: 'get_gift_package', idOrSlug });
+  }
+
+  return data;
+}
+
+/**
+ * Get gift packages grouped by tier
+ */
+export async function getGiftPackagesByTier(): Promise<
+  Record<SubscriptionTier, GiftPackage[]>
+> {
+  const packages = await getGiftPackages();
+
+  const grouped: Record<SubscriptionTier, GiftPackage[]> = {
+    free: [],
+    dream_weaver: [],
+    magic_circle: [],
+    enchanted_library: [],
+  };
+
+  for (const pkg of packages) {
+    if (grouped[pkg.tier]) {
+      grouped[pkg.tier].push(pkg);
+    }
+  }
+
+  return grouped;
+}
+
+// =============================================================================
+// GIFT PURCHASE
+// =============================================================================
+
+/**
+ * Create Stripe checkout session for gift purchase
+ */
+export async function createGiftCheckoutSession(params: {
+  userId?: string; // Can be null for guest purchases
+  packageId: string;
+  purchaserEmail: string;
+  purchaserName?: string;
+  recipientEmail?: string;
+  recipientName?: string;
+  giftMessage?: string;
+  deliveryDate?: string;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<{ sessionId: string; url: string }> {
+  const {
+    userId,
+    packageId,
+    purchaserEmail,
+    purchaserName,
+    recipientEmail,
+    recipientName,
+    giftMessage,
+    deliveryDate,
+    successUrl,
+    cancelUrl,
+  } = params;
+
+  // Get the gift package
+  const pkg = await getGiftPackage(packageId);
+
+  if (!pkg) {
+    throw new Error('Gift package not found');
+  }
+
+  const stripe = getStripe();
+
+  // Get or create Stripe customer if user is logged in
+  let customerId: string | undefined;
+
+  if (userId) {
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('stripe_customer_id, email')
+      .eq('id', userId)
+      .single();
+
+    customerId = user?.stripe_customer_id;
+
+    if (!customerId && user?.email) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        metadata: { userId },
+      });
+      customerId = customer.id;
+
+      await supabaseAdmin
+        .from('users')
+        .update({ stripe_customer_id: customerId })
+        .eq('id', userId);
+    }
+  }
+
+  // Generate a temporary redemption code (will be finalized on successful payment)
+  const tempCode = generateRedemptionCode();
+
+  // Create checkout session
+  const session = await stripe.checkout.sessions.create({
+    customer: customerId,
+    customer_email: customerId ? undefined : purchaserEmail,
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price_data: {
+          currency: pkg.currency || 'usd',
+          product_data: {
+            name: `Gift: ${pkg.name}`,
+            description: `${pkg.duration_months} months of ${formatTierName(pkg.tier)} subscription`,
+            metadata: {
+              type: 'gift_subscription',
+              packageId: pkg.id,
+              tier: pkg.tier,
+              durationMonths: pkg.duration_months.toString(),
+            },
+          },
+          unit_amount: pkg.price_cents,
+        },
+        quantity: 1,
+      },
+    ],
+    mode: 'payment',
+    success_url: `${successUrl}?session_id={CHECKOUT_SESSION_ID}&gift=true`,
+    cancel_url: cancelUrl,
+    metadata: {
+      type: 'gift_purchase',
+      packageId: pkg.id,
+      packageName: pkg.name,
+      tier: pkg.tier,
+      durationMonths: pkg.duration_months.toString(),
+      purchaserUserId: userId || '',
+      purchaserEmail,
+      purchaserName: purchaserName || '',
+      recipientEmail: recipientEmail || '',
+      recipientName: recipientName || '',
+      giftMessage: giftMessage || '',
+      deliveryDate: deliveryDate || '',
+      tempRedemptionCode: tempCode,
+    },
+  });
+
+  // Create pending gift record
+  await supabaseAdmin.from('gift_subscriptions').insert({
+    purchaser_user_id: userId || null,
+    purchaser_email: purchaserEmail,
+    purchaser_name: purchaserName || null,
+    gift_package_id: pkg.id,
+    tier: pkg.tier,
+    duration_months: pkg.duration_months,
+    price_paid_cents: pkg.price_cents,
+    currency: pkg.currency || 'usd',
+    redemption_code: tempCode,
+    status: 'pending',
+    recipient_email: recipientEmail || null,
+    recipient_name: recipientName || null,
+    gift_message: giftMessage || null,
+    delivery_date: deliveryDate || null,
+    stripe_checkout_session_id: session.id,
+    expires_at: new Date(
+      Date.now() + 365 * 24 * 60 * 60 * 1000
+    ).toISOString(), // 1 year expiry
+  });
+
+  return {
+    sessionId: session.id,
+    url: session.url!,
+  };
+}
+
+/**
+ * Handle successful gift purchase (called from webhook)
+ */
+export async function handleGiftPurchaseCompleted(
+  sessionId: string,
+  paymentIntentId: string
+): Promise<GiftSubscription | null> {
+  // Update the gift subscription to pending (ready for redemption)
+  const { data: gift, error } = await supabaseAdmin
+    .from('gift_subscriptions')
+    .update({
+      stripe_payment_intent_id: paymentIntentId,
+      status: 'pending', // Confirm it's ready
+      updated_at: new Date().toISOString(),
+    })
+    .eq('stripe_checkout_session_id', sessionId)
+    .select()
+    .single();
+
+  if (error) {
+    captureError(error, {
+      action: 'handle_gift_purchase_completed',
+      sessionId,
+    });
+    return null;
+  }
+
+  captureMessage('Gift purchase completed', 'info', {
+    giftId: gift.id,
+    tier: gift.tier,
+    redemptionCode: gift.redemption_code,
+  });
+
+  // TODO: Send email to purchaser with redemption code
+  // TODO: If recipient email provided and delivery date is today/past, send gift email
+
+  return gift;
+}
+
+// =============================================================================
+// GIFT REDEMPTION
+// =============================================================================
+
+/**
+ * Validate a gift code without redeeming it
+ */
+export async function validateGiftCode(
+  code: string
+): Promise<{
+  valid: boolean;
+  gift?: GiftSubscription;
+  package?: GiftPackage;
+  error?: string;
+}> {
+  const normalizedCode = code.toUpperCase().trim();
+
+  const { data: gift, error } = await supabaseAdmin
+    .from('gift_subscriptions')
+    .select('*, gift_package:gift_packages(*)')
+    .eq('redemption_code', normalizedCode)
+    .single();
+
+  if (error || !gift) {
+    return { valid: false, error: 'Invalid gift code' };
+  }
+
+  if (gift.status === 'redeemed') {
+    return { valid: false, error: 'This gift code has already been redeemed' };
+  }
+
+  if (gift.status === 'expired' || new Date(gift.expires_at) < new Date()) {
+    return { valid: false, error: 'This gift code has expired' };
+  }
+
+  if (gift.status === 'refunded') {
+    return { valid: false, error: 'This gift code has been refunded' };
+  }
+
+  return {
+    valid: true,
+    gift: gift,
+    package: gift.gift_package,
+  };
+}
+
+/**
+ * Redeem a gift code for a user
+ */
+export async function redeemGiftCode(
+  userId: string,
+  code: string
+): Promise<GiftRedemptionResult> {
+  const normalizedCode = code.toUpperCase().trim();
+
+  // Use the database function for atomic redemption
+  const { data, error } = await supabaseAdmin.rpc('redeem_gift_code', {
+    p_user_id: userId,
+    p_redemption_code: normalizedCode,
+  });
+
+  if (error) {
+    captureError(error, {
+      action: 'redeem_gift_code',
+      userId,
+      code: normalizedCode,
+    });
+    return {
+      success: false,
+      error_message: 'Failed to redeem gift code',
+    };
+  }
+
+  const result = data?.[0];
+
+  if (!result) {
+    return {
+      success: false,
+      error_message: 'No result from redemption',
+    };
+  }
+
+  if (result.success) {
+    captureMessage('Gift code redeemed', 'info', {
+      userId,
+      tier: result.tier,
+      durationMonths: result.duration_months,
+    });
+  }
+
+  return {
+    success: result.success,
+    error_message: result.error_message,
+    tier: result.tier,
+    duration_months: result.duration_months,
+    new_period_end: result.new_period_end,
+  };
+}
+
+// =============================================================================
+// GIFT MANAGEMENT
+// =============================================================================
+
+/**
+ * Get gifts purchased by a user
+ */
+export async function getPurchasedGifts(
+  userId: string
+): Promise<GiftSubscription[]> {
+  const { data, error } = await supabaseAdmin
+    .from('gift_subscriptions')
+    .select('*, gift_package:gift_packages(*)')
+    .eq('purchaser_user_id', userId)
+    .order('purchased_at', { ascending: false });
+
+  if (error) {
+    captureError(error, { action: 'get_purchased_gifts', userId });
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
+ * Get gifts received by a user
+ */
+export async function getReceivedGifts(
+  userId: string
+): Promise<GiftSubscription[]> {
+  const { data, error } = await supabaseAdmin
+    .from('gift_subscriptions')
+    .select('*, gift_package:gift_packages(*)')
+    .eq('recipient_user_id', userId)
+    .order('redeemed_at', { ascending: false });
+
+  if (error) {
+    captureError(error, { action: 'get_received_gifts', userId });
+    return [];
+  }
+
+  return data || [];
+}
+
+/**
+ * Resend gift email to recipient
+ */
+export async function resendGiftEmail(
+  giftId: string,
+  recipientEmail: string
+): Promise<{ success: boolean; error?: string }> {
+  const { data: gift, error } = await supabaseAdmin
+    .from('gift_subscriptions')
+    .select('*')
+    .eq('id', giftId)
+    .single();
+
+  if (error || !gift) {
+    return { success: false, error: 'Gift not found' };
+  }
+
+  if (gift.status !== 'pending') {
+    return { success: false, error: 'Gift has already been redeemed' };
+  }
+
+  // Update recipient email
+  await supabaseAdmin
+    .from('gift_subscriptions')
+    .update({
+      recipient_email: recipientEmail,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', giftId);
+
+  // TODO: Actually send the email
+  console.log(`[Gift] Resending gift email to ${recipientEmail}`);
+
+  return { success: true };
+}
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+/**
+ * Generate a unique redemption code
+ * Format: GIFT-XXXX-XXXX-XXXX
+ */
+function generateRedemptionCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // No ambiguous chars (0/O, 1/I/L)
+  let code = 'GIFT-';
+
+  for (let i = 0; i < 3; i++) {
+    for (let j = 0; j < 4; j++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    if (i < 2) code += '-';
+  }
+
+  return code;
+}
+
+/**
+ * Format tier name for display
+ */
+function formatTierName(tier: SubscriptionTier): string {
+  const names: Record<SubscriptionTier, string> = {
+    free: 'Free',
+    dream_weaver: 'Dream Weaver',
+    magic_circle: 'Magic Circle',
+    enchanted_library: 'Enchanted Library',
+  };
+  return names[tier] || tier;
+}
+
+/**
+ * Check if a gift code format is valid (basic check)
+ */
+export function isValidGiftCodeFormat(code: string): boolean {
+  // Format: GIFT-XXXX-XXXX-XXXX (19 characters)
+  const pattern = /^GIFT-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/;
+  return pattern.test(code.toUpperCase().trim());
+}
