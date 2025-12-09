@@ -1,0 +1,342 @@
+import { inngest } from './client';
+import { supabaseAdmin } from '@/lib/supabase/server';
+import OpenAI from 'openai';
+
+// Initialize OpenAI client
+function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('Missing OPENAI_API_KEY');
+  }
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
+
+// Helper functions for prompts
+const getLengthInstructions = (length: string): string => {
+  const instructions: Record<string, string> = {
+    quick: 'Keep the story brief and engaging, about 300-400 words. Perfect for a quick bedtime story.',
+    medium: 'Create a medium-length story of about 600-800 words with a clear beginning, middle, and end.',
+    epic: 'Craft a longer, more detailed story of about 1200-1500 words with rich descriptions and character development.',
+  };
+  return instructions[length] || instructions.medium;
+};
+
+const getToneInstructions = (tone: string): string => {
+  const instructions: Record<string, string> = {
+    'bedtime-calm': 'Use gentle, soothing language. The story should be warm and comforting, perfect for helping children wind down for sleep. Include peaceful imagery and a cozy atmosphere. End with everyone safe and ready for sleep.',
+    'funny': 'Make the story humorous and playful with silly situations, funny dialogue, and light-hearted moments that will make children giggle. Keep it family-friendly and joyful.',
+    'adventure': 'Create an exciting adventure with challenges to overcome, new places to explore, and brave characters. Include action and discovery while keeping it age-appropriate.',
+    'mystery': 'Build a gentle mystery with clues to discover and a puzzle to solve. Keep it intriguing but not scary, suitable for young children.',
+  };
+  return instructions[tone] || instructions['bedtime-calm'];
+};
+
+interface ChildData {
+  name: string;
+  gender: 'boy' | 'girl' | 'other';
+  items: string[];
+}
+
+interface StoryParams {
+  children: ChildData[];
+  config: {
+    tone: string;
+    length: string;
+  };
+}
+
+// =============================================================================
+// Story Generation Background Job
+// =============================================================================
+export const generateStoryJob = inngest.createFunction(
+  {
+    id: 'generate-story',
+    name: 'Generate Story',
+    retries: 2,
+    onFailure: async ({ error, event }) => {
+      // Update job status to failed (cast to any until types are regenerated)
+      const jobId = (event.data as any)?.jobId;
+      if (jobId) {
+        await (supabaseAdmin as any)
+          .from('generation_jobs')
+          .update({
+            status: 'failed',
+            error_message: error.message,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', jobId);
+      }
+    },
+  },
+  { event: 'story/generate.requested' },
+  async ({ event, step }) => {
+    const { jobId, userId, storyParams } = event.data;
+    const { children, config } = storyParams as StoryParams;
+
+    // Step 1: Update status to generating
+    await step.run('update-status-generating', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          status: 'generating',
+          progress: 10,
+          message: 'Creating your magical story...',
+        })
+        .eq('id', jobId);
+    });
+
+    // Step 2: Build the prompt
+    const prompt = await step.run('build-prompt', async () => {
+      let p = `Create a ${config.tone} bedtime story that includes the following elements:\n\n`;
+      p += `Characters:\n`;
+      children.forEach((child) => {
+        const pronouns = child.gender === 'girl' ? 'she/her' : child.gender === 'boy' ? 'he/him' : 'they/them';
+        p += `- ${child.name} (${pronouns}): ${child.items.join(', ')}\n`;
+      });
+      p += `\n${getToneInstructions(config.tone)}\n`;
+      p += `${getLengthInstructions(config.length)}\n\n`;
+      p += `The story should:\n`;
+      p += `- Include ALL the special things naturally in the narrative\n`;
+      p += `- Feature ${children.map((c) => c.name).join(' and ')} as the main character(s)\n`;
+      p += `- Use the correct pronouns for each character as specified above\n`;
+      p += `- Have a clear beginning, middle, and end\n`;
+      p += `- Be appropriate for children ages 3-10\n`;
+      p += `- Include dialogue and descriptive language\n`;
+      p += `- Have a satisfying conclusion\n\n`;
+      p += `Please provide:\n1. A creative title\n2. The complete story`;
+      return p;
+    });
+
+    // Step 3: Update progress
+    await step.run('update-progress-30', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          progress: 30,
+          message: 'Weaving the narrative...',
+        })
+        .eq('id', jobId);
+    });
+
+    // Step 4: Generate story with OpenAI
+    const storyResponse = await step.run('generate-with-openai', async () => {
+      const client = getOpenAIClient();
+      const completion = await client.chat.completions.create({
+        model: 'gpt-4-turbo-preview',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are Amari, a magical bedtime storyteller who creates warm, imaginative, and family-friendly stories for children. Your stories are creative, engaging, and always include all the elements requested.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        temperature: 0.9,
+        max_tokens: 2000,
+      });
+
+      return completion.choices[0].message.content || '';
+    });
+
+    // Step 5: Update progress
+    await step.run('update-progress-70', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          progress: 70,
+          message: 'Adding finishing touches...',
+        })
+        .eq('id', jobId);
+    });
+
+    // Step 6: Parse and save story
+    const story = await step.run('save-story', async () => {
+      // Parse title and content
+      const lines = storyResponse.split('\n');
+      let title = 'A Magical Story';
+      let content = storyResponse;
+
+      if (lines[0].toLowerCase().startsWith('title:')) {
+        title = lines[0].replace(/^title:\s*/i, '').trim();
+        content = lines.slice(1).join('\n').trim();
+      } else if (lines[0].startsWith('#')) {
+        title = lines[0].replace(/^#+\s*/, '').trim();
+        content = lines.slice(1).join('\n').trim();
+      }
+
+      const wordCount = content.split(/\s+/).length;
+
+      // Save story to database (cast length to proper enum type)
+      const storyTone = config.tone as 'bedtime-calm' | 'funny' | 'adventure' | 'mystery';
+      const storyLength = config.length as 'quick' | 'medium' | 'epic';
+
+      const { data: savedStory, error } = await supabaseAdmin
+        .from('stories')
+        .insert({
+          user_id: userId,
+          title,
+          content,
+          tone: storyTone,
+          length: storyLength,
+          word_count: wordCount,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Save story seeds
+      for (const child of children) {
+        await supabaseAdmin.from('story_seeds').insert({
+          story_id: savedStory.id,
+          child_name: child.name,
+          seed_items: child.items,
+        });
+      }
+
+      return savedStory;
+    });
+
+    // Step 7: Track usage
+    await step.run('track-usage', async () => {
+      // Insert usage record
+      await (supabaseAdmin as any).from('usage_records').insert({
+        user_id: userId,
+        action_type: 'story_generation',
+        metadata: {
+          story_id: story.id,
+          tone: config.tone,
+          length: config.length,
+        },
+      });
+
+      // Update user_subscriptions stories_used count
+      await (supabaseAdmin as any).rpc('increment_stories_used', { p_user_id: userId });
+    });
+
+    // Step 8: Mark job complete
+    await step.run('mark-complete', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          status: 'completed',
+          progress: 100,
+          message: 'Your story is ready!',
+          result_id: story.id,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+    });
+
+    return {
+      success: true,
+      storyId: story.id,
+      title: story.title,
+    };
+  }
+);
+
+// =============================================================================
+// Monthly Usage Reset Job (Cron)
+// =============================================================================
+export const monthlyUsageReset = inngest.createFunction(
+  {
+    id: 'monthly-usage-reset',
+    name: 'Monthly Usage Reset',
+  },
+  { cron: '0 0 * * *' }, // Run daily at midnight to check for period resets
+  async ({ step }) => {
+    // Find subscriptions that need reset (period ended)
+    const subscriptionsToReset = await step.run('find-subscriptions', async () => {
+      const { data } = await (supabaseAdmin as any)
+        .from('user_subscriptions')
+        .select('id, user_id, current_period_end')
+        .lt('current_period_end', new Date().toISOString())
+        .eq('status', 'active');
+
+      return data || [];
+    });
+
+    // Reset each subscription's usage
+    for (const sub of subscriptionsToReset) {
+      await step.run(`reset-${sub.id}`, async () => {
+        const newPeriodStart = new Date();
+        const newPeriodEnd = new Date();
+        newPeriodEnd.setMonth(newPeriodEnd.getMonth() + 1);
+
+        await (supabaseAdmin as any)
+          .from('user_subscriptions')
+          .update({
+            stories_used: 0,
+            premium_voices_used: 0,
+            current_period_start: newPeriodStart.toISOString(),
+            current_period_end: newPeriodEnd.toISOString(),
+          })
+          .eq('id', sub.id);
+      });
+    }
+
+    return { reset: subscriptionsToReset.length };
+  }
+);
+
+// =============================================================================
+// Future: Audio Generation Job
+// =============================================================================
+export const generateAudioJob = inngest.createFunction(
+  {
+    id: 'generate-audio',
+    name: 'Generate Audio Narration',
+    retries: 2,
+  },
+  { event: 'audio/generate.requested' },
+  async ({ event, step }) => {
+    const { jobId, storyId, userId, voiceId } = event.data;
+
+    // Placeholder for ElevenLabs integration
+    await step.run('update-status', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          status: 'generating',
+          message: 'Audio generation coming soon!',
+        })
+        .eq('id', jobId);
+    });
+
+    // TODO: Implement ElevenLabs integration in Phase 3
+    return { success: true, message: 'Audio generation not yet implemented' };
+  }
+);
+
+// =============================================================================
+// Future: Image Generation Job
+// =============================================================================
+export const generateImagesJob = inngest.createFunction(
+  {
+    id: 'generate-images',
+    name: 'Generate Story Illustrations',
+    retries: 2,
+  },
+  { event: 'images/generate.requested' },
+  async ({ event, step }) => {
+    const { jobId, storyId, userId, style, count } = event.data;
+
+    // Placeholder for GPT-4o/DALL-E integration
+    await step.run('update-status', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          status: 'generating',
+          message: 'Image generation coming soon!',
+        })
+        .eq('id', jobId);
+    });
+
+    // TODO: Implement image generation in Phase 2
+    return { success: true, message: 'Image generation not yet implemented' };
+  }
+);

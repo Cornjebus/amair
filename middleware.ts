@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
   '/gifts(.*)',             // Public: gift purchase and redemption
   '/api/webhooks(.*)',
   '/api/health(.*)',
+  '/api/inngest(.*)',       // Public: Inngest webhook endpoint
   '/api/gifts/packages(.*)', // Public: gift packages info
   '/api/gifts/redeem(.*)',   // Public: gift code validation (GET only)
   '/api/subscriptions/prices(.*)', // Public: subscription prices
