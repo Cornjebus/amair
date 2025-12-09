@@ -109,14 +109,21 @@ export async function POST(req: Request) {
     }
 
     // Send event to Inngest to start background processing
-    await inngest.send({
-      name: 'story/generate.requested',
-      data: {
-        jobId: job.id,
-        userId: user.id,
-        storyParams: { children, config },
-      },
-    });
+    console.log('[generate-story-async] Sending event to Inngest for job:', job.id);
+    try {
+      const sendResult = await inngest.send({
+        name: 'story/generate.requested',
+        data: {
+          jobId: job.id,
+          userId: user.id,
+          storyParams: { children, config },
+        },
+      });
+      console.log('[generate-story-async] Inngest send result:', sendResult);
+    } catch (inngestError: any) {
+      console.error('[generate-story-async] Inngest send error:', inngestError);
+      // Don't fail the request - the job is created, user can retry
+    }
 
     // Return job ID immediately
     return NextResponse.json({

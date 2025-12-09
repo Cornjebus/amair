@@ -4,6 +4,8 @@ import { Inngest } from 'inngest';
 export const inngest = new Inngest({
   id: 'myamari',
   name: 'MyAmari',
+  // Event key is automatically read from INNGEST_EVENT_KEY env var
+  // Signing key is automatically read from INNGEST_SIGNING_KEY env var
 });
 
 // Event types for type safety
