@@ -7,6 +7,7 @@
 import Stripe from 'stripe'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { getStripe } from '@/lib/stripe/server'
 import { captureError, captureMessage } from '@/lib/monitoring/sentry'
 import type { SubscriptionTier } from './tiers'
 
@@ -71,8 +72,8 @@ export async function handleCheckoutCompleted(session: Stripe.Checkout.Session) 
   }
 
   // Get subscription details from Stripe
-  const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY!)
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId)
+  const stripe = getStripe()
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any
 
   const tier = getTierFromSubscription(subscription)
   const periodStart = new Date(subscription.current_period_start * 1000).toISOString()
@@ -238,7 +239,7 @@ export async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   // Ensure subscription is marked as active
   const subscriptionId = (invoice as any).subscription
   if (subscriptionId) {
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY!)
+    const stripe = getStripe()
     const subscription = await stripe.subscriptions.retrieve(subscriptionId)
 
     await handleSubscriptionUpdated(subscription)
@@ -278,11 +279,12 @@ export async function handleNewSubscription(
 
   try {
     // Get subscription details from Stripe
-    const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY!)
+    const stripe = getStripe()
     const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId)
+    const sub = subscription as any
 
-    const periodStart = new Date(subscription.current_period_start * 1000).toISOString()
-    const periodEnd = new Date(subscription.current_period_end * 1000).toISOString()
+    const periodStart = new Date(sub.current_period_start * 1000).toISOString()
+    const periodEnd = new Date(sub.current_period_end * 1000).toISOString()
 
     // Create or update user_subscriptions record
     const { error } = await supabase
