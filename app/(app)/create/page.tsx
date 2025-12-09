@@ -179,13 +179,13 @@ export default function CreateStoryPage() {
             </div>
           )}
 
-          {/* Progress UI */}
-          {isGenerating && jobStatus && (
-            <div className="mb-8 p-8 bg-gradient-to-br from-lavender-50 to-peach-50 border-2 border-lavender-200 rounded-3xl">
+          {/* Progress UI - Show INSTEAD of wizard when generating */}
+          {isGenerating ? (
+            <div className="max-w-2xl mx-auto p-8 bg-gradient-to-br from-lavender-50 to-peach-50 border-2 border-lavender-200 rounded-3xl">
               <div className="text-center">
                 {/* Animated Icon */}
                 <div className="relative inline-flex items-center justify-center mb-6">
-                  <div className="absolute inset-0 rounded-full bg-lavender-200 animate-ping opacity-25" />
+                  <div className="absolute w-20 h-20 rounded-full bg-lavender-200 animate-ping opacity-25" />
                   <div className="relative p-4 bg-white rounded-full shadow-lg">
                     <CurrentIcon className="h-10 w-10 text-lavender-600 animate-pulse" />
                   </div>
@@ -196,19 +196,19 @@ export default function CreateStoryPage() {
                   {progressMessages[messageIndex].text}
                 </h3>
                 <p className="text-lavender-600 mb-6">
-                  {jobStatus.message || 'Creating something special...'}
+                  {jobStatus?.message || 'Creating something special...'}
                 </p>
 
                 {/* Progress Bar */}
                 <div className="max-w-md mx-auto">
                   <div className="flex justify-between text-sm text-lavender-600 mb-2">
                     <span>Progress</span>
-                    <span>{jobStatus.progress}%</span>
+                    <span>{jobStatus?.progress || 0}%</span>
                   </div>
                   <div className="h-3 bg-lavender-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-lavender-400 to-peach-400 rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${Math.max(jobStatus.progress, 5)}%` }}
+                      style={{ width: `${Math.max(jobStatus?.progress || 0, 5)}%` }}
                     />
                   </div>
                 </div>
@@ -219,9 +219,9 @@ export default function CreateStoryPage() {
                 </p>
               </div>
             </div>
+          ) : (
+            <StoryWizard onGenerate={handleGenerate} isGenerating={isGenerating} />
           )}
-
-          <StoryWizard onGenerate={handleGenerate} isGenerating={isGenerating} />
         </>
       ) : (
         <>
