@@ -25,6 +25,36 @@ function getTierFromPriceId(priceId: string): SubscriptionTier {
   return priceIdMap[priceId] || 'free';
 }
 
+// Get tier from subscription object using multiple fallbacks
+function getTierFromSubscription(subscription: any): SubscriptionTier {
+  const priceItem = subscription.items?.data?.[0];
+  const price = priceItem?.price;
+  const priceId = price?.id;
+
+  // First try price ID mapping
+  if (priceId) {
+    const tier = getTierFromPriceId(priceId);
+    if (tier !== 'free') return tier;
+  }
+
+  // Then try price metadata
+  if (price?.metadata?.tier) {
+    const tier = price.metadata.tier as SubscriptionTier;
+    if (['dream_weaver', 'magic_circle', 'enchanted_library'].includes(tier)) {
+      return tier;
+    }
+  }
+
+  // Then try product metadata (need to fetch product)
+  // For now, try to infer from price amount
+  const amount = price?.unit_amount || 0;
+  if (amount >= 2499) return 'enchanted_library'; // $24.99+ monthly or annual
+  if (amount >= 1199) return 'magic_circle'; // $11.99+
+  if (amount >= 599) return 'dream_weaver'; // $5.99+
+
+  return 'free';
+}
+
 // =============================================================================
 // POST /api/subscriptions/sync - Sync subscription from Stripe
 // =============================================================================
@@ -75,12 +105,21 @@ export async function POST(request: NextRequest) {
     }
 
     const stripeSubscription = subscriptions.data[0] as any;
-    const priceId = stripeSubscription.items.data[0]?.price?.id;
-    const tier = getTierFromPriceId(priceId);
+
+    // Use improved tier detection with multiple fallbacks
+    const tier = getTierFromSubscription(stripeSubscription);
 
     // Determine billing cycle from price interval
     const interval = stripeSubscription.items.data[0]?.price?.recurring?.interval;
     const billingCycle = interval === 'year' ? 'annual' : 'monthly';
+
+    console.log('[Sync] Detected subscription details:', {
+      priceId: stripeSubscription.items.data[0]?.price?.id,
+      priceAmount: stripeSubscription.items.data[0]?.price?.unit_amount,
+      priceMetadata: stripeSubscription.items.data[0]?.price?.metadata,
+      detectedTier: tier,
+      billingCycle,
+    });
 
     // Safely handle date conversion
     const now = new Date();
@@ -124,7 +163,10 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) {
       console.error('[Sync] Error upserting subscription:', upsertError);
-      throw upsertError;
+      // Don't throw - still return what we have from Stripe
+      console.log('[Sync] Continuing despite upsert error...');
+    } else {
+      console.log('[Sync] Successfully upserted subscription for user:', user.id);
     }
 
     // Also update the users table for backward compatibility

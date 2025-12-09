@@ -51,8 +51,15 @@ export async function GET() {
       .eq('user_id', user.id)
       .single() as { data: UserSubscription | null; error: any };
 
+    console.log('[Subscriptions] Query result for user', user.id, ':', {
+      hasSubscription: !!subscription,
+      tier: subscription?.tier,
+      error: subError?.message,
+    });
+
     // If no subscription exists, return free tier defaults
     if (subError || !subscription) {
+      console.log('[Subscriptions] Returning free tier defaults for user:', user.id);
       const freeLimits = TIER_CONFIG.free;
       return NextResponse.json({
         tier: 'free',
