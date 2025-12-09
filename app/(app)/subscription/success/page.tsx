@@ -17,9 +17,9 @@ export default function SubscriptionSuccessPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [subscription, setSubscription] = useState<{
     tier: string;
-    stories_remaining: number;
-    premium_voices_remaining: number;
-    current_period_end: string;
+    storiesRemaining: number;
+    premiumVoicesRemaining: number;
+    currentPeriodEnd: string;
   } | null>(null);
 
   useEffect(() => {
@@ -28,22 +28,38 @@ export default function SubscriptionSuccessPage() {
       return;
     }
 
-    // Wait for webhook to process, then fetch subscription
-    const timer = setTimeout(async () => {
+    // Sync subscription from Stripe (fallback for webhook failures)
+    async function syncAndFetch() {
       try {
+        // First, try to sync from Stripe (handles webhook failures)
+        const syncResponse = await fetch('/api/subscriptions/sync', {
+          method: 'POST',
+        });
+
+        if (syncResponse.ok) {
+          const syncData = await syncResponse.json();
+          if (syncData.tier && syncData.tier !== 'free') {
+            setSubscription(syncData);
+            setStatus('success');
+            return;
+          }
+        }
+
+        // Fall back to fetching existing subscription
         const response = await fetch('/api/subscriptions');
         if (response.ok) {
           const data = await response.json();
           setSubscription(data);
-          setStatus('success');
-        } else {
-          // Even if we can't fetch, the subscription likely succeeded
-          setStatus('success');
         }
+        setStatus('success');
       } catch (err) {
+        console.error('Error syncing subscription:', err);
         setStatus('success');
       }
-    }, 2000);
+    }
+
+    // Wait a moment for webhook to potentially process first
+    const timer = setTimeout(syncAndFetch, 2000);
 
     return () => clearTimeout(timer);
   }, [sessionId]);
@@ -83,13 +99,13 @@ export default function SubscriptionSuccessPage() {
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <p className="text-3xl font-bold text-lavender-600">
-                  {subscription.stories_remaining}
+                  {subscription.storiesRemaining}
                 </p>
                 <p className="text-sm text-gray-500">Stories Available</p>
               </div>
               <div>
                 <p className="text-3xl font-bold text-skyblue-600">
-                  {subscription.premium_voices_remaining}
+                  {subscription.premiumVoicesRemaining}
                 </p>
                 <p className="text-sm text-gray-500">Premium Voices</p>
               </div>
@@ -98,8 +114,8 @@ export default function SubscriptionSuccessPage() {
               <p className="text-sm text-gray-500">
                 Your subscription renews on{' '}
                 <span className="font-medium text-gray-700">
-                  {subscription.current_period_end
-                    ? new Date(subscription.current_period_end).toLocaleDateString('en-US', {
+                  {subscription.currentPeriodEnd
+                    ? new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
