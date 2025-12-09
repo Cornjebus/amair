@@ -217,37 +217,42 @@ export const generateStoryJob = inngest.createFunction(
         console.error('Error inserting usage record:', usageError);
       }
 
-      // Update user_subscriptions stories_used count
-      // First check if subscription exists, if not create a free one
-      const { data: existingSub } = await (supabaseAdmin as any)
-        .from('user_subscriptions')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (!existingSub) {
-        // Create free subscription for user
-        const now = new Date();
-        const periodEnd = new Date();
-        periodEnd.setMonth(periodEnd.getMonth() + 1);
-
-        await (supabaseAdmin as any).from('user_subscriptions').insert({
-          user_id: userId,
-          tier: 'free',
-          status: 'active',
-          stories_limit: 3,
-          stories_used: 1, // Already used one
-          premium_voices_limit: 0,
-          premium_voices_used: 0,
-          current_period_start: now.toISOString(),
-          current_period_end: periodEnd.toISOString(),
+      // Use the database function to record story generation
+      // This handles incrementing usage properly
+      const { data: usageResult, error: rpcError } = await (supabaseAdmin as any)
+        .rpc('record_story_generation', {
+          p_user_id: userId,
+          p_used_premium_voice: false,
         });
-      } else {
-        // Increment stories_used count
-        const { error: rpcError } = await (supabaseAdmin as any).rpc('increment_stories_used', { p_user_id: userId });
-        if (rpcError) {
-          console.error('Error incrementing stories_used:', rpcError);
+
+      if (rpcError) {
+        console.error('Error from record_story_generation RPC:', rpcError);
+
+        // Fallback: Direct increment on user_subscriptions
+        // First get current value
+        const { data: currentSub } = await (supabaseAdmin as any)
+          .from('user_subscriptions')
+          .select('stories_used')
+          .eq('user_id', userId)
+          .single();
+
+        if (currentSub) {
+          const { error: updateError } = await (supabaseAdmin as any)
+            .from('user_subscriptions')
+            .update({
+              stories_used: (currentSub.stories_used || 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId);
+
+          if (updateError) {
+            console.error('Fallback update also failed:', updateError);
+          } else {
+            console.log('Fallback increment succeeded, new count:', (currentSub.stories_used || 0) + 1);
+          }
         }
+      } else {
+        console.log('Story generation recorded via RPC:', usageResult);
       }
     });
 
