@@ -323,31 +323,221 @@ export const monthlyUsageReset = inngest.createFunction(
 );
 
 // =============================================================================
-// Future: Audio Generation Job
+// Audio Generation Job with ElevenLabs
 // =============================================================================
 export const generateAudioJob = inngest.createFunction(
   {
     id: 'generate-audio',
     name: 'Generate Audio Narration',
     retries: 2,
+    onFailure: async ({ error, event }) => {
+      const jobId = (event.data as any)?.jobId;
+      if (jobId) {
+        await (supabaseAdmin as any)
+          .from('generation_jobs')
+          .update({
+            status: 'failed',
+            error_message: error.message,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', jobId);
+      }
+    },
   },
   { event: 'audio/generate.requested' },
   async ({ event, step }) => {
-    const { jobId, storyId, userId, voiceId } = event.data;
+    const { jobId, storyId, userId, voiceId, isPremiumVoice } = event.data;
 
-    // Placeholder for ElevenLabs integration
-    await step.run('update-status', async () => {
+    // Step 1: Update status to generating
+    await step.run('update-status-generating', async () => {
       await (supabaseAdmin as any)
         .from('generation_jobs')
         .update({
           status: 'generating',
-          message: 'Audio generation coming soon!',
+          progress: 10,
+          message: 'Preparing your story narration...',
         })
         .eq('id', jobId);
     });
 
-    // TODO: Implement ElevenLabs integration in Phase 3
-    return { success: true, message: 'Audio generation not yet implemented' };
+    // Step 2: Fetch story content
+    const story = await step.run('fetch-story', async () => {
+      const { data, error } = await supabaseAdmin
+        .from('stories')
+        .select('id, title, content')
+        .eq('id', storyId)
+        .single();
+
+      if (error || !data) {
+        throw new Error('Story not found');
+      }
+
+      return data;
+    });
+
+    // Step 3: Update progress
+    await step.run('update-progress-30', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          progress: 30,
+          message: 'Generating audio narration...',
+        })
+        .eq('id', jobId);
+    });
+
+    // Step 4: Generate audio with ElevenLabs
+    const audioResult = await step.run('generate-audio-elevenlabs', async () => {
+      // Dynamic import to avoid issues with edge runtime
+      const { getElevenLabsClient, getDefaultVoice, ELEVENLABS_MODEL, STORY_VOICE_SETTINGS } = await import('@/lib/elevenlabs/client');
+
+      const client = getElevenLabsClient();
+      const selectedVoiceId = voiceId || getDefaultVoice().id;
+
+      // Prepare text - add title as intro
+      const fullText = `${story.title}.\n\n${story.content}`;
+
+      // Generate audio - returns a readable stream
+      const audioResponse = await client.textToSpeech.convert(selectedVoiceId, {
+        text: fullText,
+        modelId: ELEVENLABS_MODEL,
+        voiceSettings: STORY_VOICE_SETTINGS,
+      });
+
+      // Convert ReadableStream to Buffer
+      const reader = (audioResponse as any).getReader?.()
+        ?? (audioResponse as ReadableStream<Uint8Array>).getReader();
+      const chunks: Uint8Array[] = [];
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(value);
+      }
+
+      const audioBuffer = Buffer.concat(chunks);
+
+      // Upload to Supabase Storage
+      const fileName = `${userId}/${storyId}/narration-${Date.now()}.mp3`;
+      const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        .from('story-audio')
+        .upload(fileName, audioBuffer, {
+          contentType: 'audio/mpeg',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error('Error uploading audio:', uploadError);
+        throw new Error('Failed to upload audio file');
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = supabaseAdmin.storage
+        .from('story-audio')
+        .getPublicUrl(fileName);
+
+      return {
+        filePath: fileName,
+        publicUrl: publicUrlData.publicUrl,
+        durationEstimate: Math.ceil(fullText.split(' ').length / 150), // Rough estimate: 150 words/min
+      };
+    });
+
+    // Step 5: Update progress
+    await step.run('update-progress-70', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          progress: 70,
+          message: 'Saving your audio...',
+        })
+        .eq('id', jobId);
+    });
+
+    // Step 6: Save audio record to database
+    const audioRecord = await step.run('save-audio-record', async () => {
+      const { data, error } = await (supabaseAdmin as any)
+        .from('story_audio')
+        .insert({
+          story_id: storyId,
+          user_id: userId,
+          voice_id: voiceId || 'default',
+          file_path: audioResult.filePath,
+          public_url: audioResult.publicUrl,
+          duration_seconds: audioResult.durationEstimate * 60,
+          is_premium_voice: isPremiumVoice || false,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving audio record:', error);
+        throw new Error('Failed to save audio record');
+      }
+
+      return data;
+    });
+
+    // Step 7: Track premium voice usage if applicable
+    if (isPremiumVoice) {
+      await step.run('track-premium-voice', async () => {
+        // Insert usage record
+        await (supabaseAdmin as any).from('usage_records').insert({
+          user_id: userId,
+          action_type: 'premium_voice_used',
+          metadata: {
+            story_id: storyId,
+            audio_id: audioRecord.id,
+            voice_id: voiceId,
+          },
+        });
+
+        // Increment premium_voices_used
+        const { data: currentSub } = await (supabaseAdmin as any)
+          .from('user_subscriptions')
+          .select('premium_voices_used')
+          .eq('user_id', userId)
+          .single();
+
+        if (currentSub) {
+          await (supabaseAdmin as any)
+            .from('user_subscriptions')
+            .update({
+              premium_voices_used: (currentSub.premium_voices_used || 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId);
+        }
+      });
+    }
+
+    // Step 8: Update story with audio reference
+    await step.run('update-story-audio', async () => {
+      await supabaseAdmin
+        .from('stories')
+        .update({ audio_url: audioResult.publicUrl })
+        .eq('id', storyId);
+    });
+
+    // Step 9: Mark job complete
+    await step.run('mark-complete', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          status: 'completed',
+          progress: 100,
+          message: 'Your audio narration is ready!',
+          result_id: audioRecord.id,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+    });
+
+    return {
+      success: true,
+      audioId: audioRecord.id,
+      publicUrl: audioResult.publicUrl,
+    };
   }
 );
 
