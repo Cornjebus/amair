@@ -76,8 +76,15 @@ export async function handleCheckoutCompleted(session: Stripe.Checkout.Session) 
   const subscription = await stripe.subscriptions.retrieve(subscriptionId) as any
 
   const tier = getTierFromSubscription(subscription)
-  const periodStart = new Date(subscription.current_period_start * 1000).toISOString()
-  const periodEnd = new Date(subscription.current_period_end * 1000).toISOString()
+
+  // Safely handle date conversion
+  const now = new Date()
+  const periodStart = subscription.current_period_start
+    ? new Date(subscription.current_period_start * 1000).toISOString()
+    : now.toISOString()
+  const periodEnd = subscription.current_period_end
+    ? new Date(subscription.current_period_end * 1000).toISOString()
+    : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
   console.log('📝 Processing subscription upgrade:', {
     clerkUserId,
@@ -283,8 +290,14 @@ export async function handleNewSubscription(
     const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId)
     const sub = subscription as any
 
-    const periodStart = new Date(sub.current_period_start * 1000).toISOString()
-    const periodEnd = new Date(sub.current_period_end * 1000).toISOString()
+    // Safely handle date conversion
+    const now = new Date()
+    const periodStart = sub.current_period_start
+      ? new Date(sub.current_period_start * 1000).toISOString()
+      : now.toISOString()
+    const periodEnd = sub.current_period_end
+      ? new Date(sub.current_period_end * 1000).toISOString()
+      : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
     // Create or update user_subscriptions record
     const { error } = await supabase

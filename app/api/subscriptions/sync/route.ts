@@ -82,8 +82,17 @@ export async function POST(request: NextRequest) {
     const interval = stripeSubscription.items.data[0]?.price?.recurring?.interval;
     const billingCycle = interval === 'year' ? 'annual' : 'monthly';
 
-    const periodStart = new Date(stripeSubscription.current_period_start * 1000).toISOString();
-    const periodEnd = new Date(stripeSubscription.current_period_end * 1000).toISOString();
+    // Safely handle date conversion
+    const now = new Date();
+    const periodStartTimestamp = stripeSubscription.current_period_start;
+    const periodEndTimestamp = stripeSubscription.current_period_end;
+
+    const periodStart = periodStartTimestamp
+      ? new Date(periodStartTimestamp * 1000).toISOString()
+      : now.toISOString();
+    const periodEnd = periodEndTimestamp
+      ? new Date(periodEndTimestamp * 1000).toISOString()
+      : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     console.log('[Sync] Syncing subscription:', {
       userId: user.id,
