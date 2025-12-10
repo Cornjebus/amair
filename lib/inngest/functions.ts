@@ -542,30 +542,188 @@ export const generateAudioJob = inngest.createFunction(
 );
 
 // =============================================================================
-// Future: Image Generation Job
+// Image Generation Job with DALL-E 3
 // =============================================================================
 export const generateImagesJob = inngest.createFunction(
   {
     id: 'generate-images',
     name: 'Generate Story Illustrations',
-    retries: 2,
+    retries: 1, // Images are expensive, limit retries
+    onFailure: async ({ error, event }) => {
+      const jobId = (event.data as any)?.jobId;
+      if (jobId) {
+        await (supabaseAdmin as any)
+          .from('generation_jobs')
+          .update({
+            status: 'failed',
+            error_message: error.message,
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', jobId);
+      }
+    },
   },
   { event: 'images/generate.requested' },
   async ({ event, step }) => {
     const { jobId, storyId, userId, style, count } = event.data;
+    const numberOfImages = count || 3;
+    const artStyle = style || 'watercolor';
 
-    // Placeholder for GPT-4o/DALL-E integration
-    await step.run('update-status', async () => {
+    // Step 1: Update status to generating
+    await step.run('update-status-generating', async () => {
       await (supabaseAdmin as any)
         .from('generation_jobs')
         .update({
           status: 'generating',
-          message: 'Image generation coming soon!',
+          progress: 5,
+          message: 'Preparing to create illustrations...',
         })
         .eq('id', jobId);
     });
 
-    // TODO: Implement image generation in Phase 2
-    return { success: true, message: 'Image generation not yet implemented' };
+    // Step 2: Fetch story content
+    const story = await step.run('fetch-story', async () => {
+      const { data, error } = await supabaseAdmin
+        .from('stories')
+        .select('id, title, content')
+        .eq('id', storyId)
+        .single();
+
+      if (error || !data) {
+        throw new Error('Story not found');
+      }
+
+      return data;
+    });
+
+    // Step 3: Extract scenes for illustration
+    const scenes = await step.run('extract-scenes', async () => {
+      const { extractScenesForIllustration } = await import('@/lib/ai/image-generator');
+
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          progress: 15,
+          message: 'Identifying key scenes to illustrate...',
+        })
+        .eq('id', jobId);
+
+      return extractScenesForIllustration(story.content, story.title, numberOfImages);
+    });
+
+    // Step 4: Generate images one by one
+    const generatedImages: Array<{ sceneNumber: number; publicUrl: string; id: string }> = [];
+
+    for (let i = 0; i < scenes.length; i++) {
+      const scene = scenes[i];
+      const sceneNumber = i + 1;
+      const progressPercent = 20 + Math.floor((i / scenes.length) * 60);
+
+      // Update progress
+      await step.run(`update-progress-scene-${sceneNumber}`, async () => {
+        await (supabaseAdmin as any)
+          .from('generation_jobs')
+          .update({
+            progress: progressPercent,
+            message: `Creating illustration ${sceneNumber} of ${scenes.length}...`,
+          })
+          .eq('id', jobId);
+      });
+
+      // Generate the image
+      const imageResult = await step.run(`generate-image-${sceneNumber}`, async () => {
+        const { generateStoryImage, downloadImageAsBuffer, ART_STYLES } = await import('@/lib/ai/image-generator');
+
+        // Generate image with DALL-E
+        const result = await generateStoryImage({
+          prompt: scene,
+          style: artStyle as any,
+          storyTitle: story.title,
+        });
+
+        // Download image and upload to Supabase Storage
+        const imageBuffer = await downloadImageAsBuffer(result.imageUrl);
+        const fileName = `${userId}/${storyId}/scene-${sceneNumber}-${Date.now()}.png`;
+
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from('story-images')
+          .upload(fileName, imageBuffer, {
+            contentType: 'image/png',
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error('Error uploading image:', uploadError);
+          throw new Error('Failed to upload image');
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabaseAdmin.storage
+          .from('story-images')
+          .getPublicUrl(fileName);
+
+        // Save to database
+        const { data: savedImage, error: saveError } = await (supabaseAdmin as any)
+          .from('story_images')
+          .insert({
+            story_id: storyId,
+            user_id: userId,
+            scene_number: sceneNumber,
+            scene_description: scene,
+            prompt_used: result.revisedPrompt || scene,
+            image_url: result.imageUrl,
+            file_path: fileName,
+            public_url: publicUrlData.publicUrl,
+            style: artStyle,
+            model: result.model,
+          })
+          .select()
+          .single();
+
+        if (saveError) {
+          console.error('Error saving image record:', saveError);
+          throw new Error('Failed to save image record');
+        }
+
+        return {
+          id: savedImage.id,
+          publicUrl: publicUrlData.publicUrl,
+          sceneNumber,
+        };
+      });
+
+      generatedImages.push(imageResult);
+    }
+
+    // Step 5: Update story with illustration info
+    await step.run('update-story-illustrations', async () => {
+      await (supabaseAdmin as any)
+        .from('stories')
+        .update({
+          has_illustrations: true,
+          illustration_count: generatedImages.length,
+          art_style: artStyle,
+        })
+        .eq('id', storyId);
+    });
+
+    // Step 6: Mark job complete
+    await step.run('mark-complete', async () => {
+      await (supabaseAdmin as any)
+        .from('generation_jobs')
+        .update({
+          status: 'completed',
+          progress: 100,
+          message: `Created ${generatedImages.length} beautiful illustrations!`,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', jobId);
+    });
+
+    return {
+      success: true,
+      imageCount: generatedImages.length,
+      images: generatedImages,
+    };
   }
 );
