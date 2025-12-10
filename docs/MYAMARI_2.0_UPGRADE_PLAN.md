@@ -3839,25 +3839,263 @@ CREATE INDEX idx_video_clips_video ON video_clips(story_video_id);
 
 ---
 
-## Phase 5: Credit System Migration (Week 7-8)
+## Phase 5: 14-Day Free Trial System (Week 7-8)
 
-### 5.X UI/UX Requirements for Credit System
+> **Decision (Dec 2025):** Credit system migration DEFERRED. Instead, implementing a 14-day free trial model to improve conversion rates and reduce friction.
+
+### 5.0 Strategic Rationale
+
+**Why Trial Instead of Credits:**
+- Predictable revenue with subscription model
+- Simpler UX - users don't think about per-action costs
+- Family-friendly - parents prefer flat monthly pricing
+- Higher conversion - trial captures payment upfront
+- Credits can be added later as an add-on for video generation
+
+### 5.1 New Pricing Structure
+
+| Tier | Monthly | Annual | Trial | Features |
+|------|---------|--------|-------|----------|
+| ~~Free~~ | ~~$0~~ | ~~$0~~ | N/A | **DEPRECATED** |
+| **Dream Weaver** | $6.99 | $59.99 | **14 days free** | 10 stories, 3 premium voices, illustrations |
+| **Magic Circle** | $14.99 | $119.99 | **14 days free** | 30 stories, 15 premium voices, illustrations |
+| **Enchanted Library** | $29.99 | $249.99 | No trial | 60 stories, 60 premium voices, all features |
+
+### 5.2 Trial Behavior
+
+1. User selects Dream Weaver or Magic Circle
+2. Enters payment method via Stripe Checkout
+3. Gets full tier features for 14 days
+4. Charged automatically on day 15 unless cancelled
+5. Can upgrade to higher tier anytime (trial converts)
+
+### 5.3 Implementation Tasks
+
+#### 5.3.1 Stripe Configuration
+```typescript
+// lib/stripe/create-trial-subscription.ts
+const subscription = await stripe.subscriptions.create({
+  customer: customerId,
+  items: [{ price: priceId }],
+  trial_period_days: 14,
+  trial_settings: {
+    end_behavior: {
+      missing_payment_method: 'cancel',
+    },
+  },
+  payment_settings: {
+    save_default_payment_method: 'on_subscription',
+  },
+});
+```
+
+#### 5.3.2 Webhook Events to Handle
+```typescript
+'customer.subscription.trial_will_end'  // 3 days before trial ends
+'customer.subscription.updated'          // Trial converted to paid
+'customer.subscription.deleted'          // Cancelled during trial
+```
+
+#### 5.3.3 Remove Free Tier
+```typescript
+// lib/subscription/tiers.ts - REMOVE 'free'
+export type SubscriptionTier = 'dream_weaver' | 'magic_circle' | 'enchanted_library'
+```
+
+#### 5.3.4 Files to Update
+- `/lib/subscription/tiers.ts` - Remove free tier
+- `/app/(app)/pricing/page.tsx` - Trial messaging, remove free card
+- `/app/(app)/dashboard/page.tsx` - Trial status display
+- `/app/(app)/settings/subscription/page.tsx` - Trial days remaining
+- `/components/subscription/pricing-card.tsx` - "Start 14-day trial" CTA
+- `/middleware.ts` - Update auth logic (no free access)
+
+### 5.4 Trial Reminder Emails (Resend)
+
+#### 5.4.1 Email Schedule
+
+| Day | Email | Trigger |
+|-----|-------|---------|
+| 1 | Welcome + How to Get Started | `subscription.created` (with trial) |
+| 10 | "4 days left" Reminder | `trial_will_end` webhook |
+| 13 | "Trial ends tomorrow" Warning | Inngest cron job |
+
+#### 5.4.2 Welcome Email Template
+```
+Subject: Welcome to MyAmari! Your magical journey begins ✨
+
+Hi {name},
+
+Welcome to MyAmari! Your 14-day free trial of {tier_name} is now active.
+
+Here's what you can do:
+- Create up to {story_limit} personalized bedtime stories
+- Use {voice_limit} premium AI voices
+- Generate beautiful illustrations for your stories
+
+Get started: {dashboard_link}
+
+Your trial ends on {trial_end_date}. We'll remind you before it ends.
+
+Happy storytelling!
+The MyAmari Team
+```
+
+#### 5.4.3 Day 10 Email Template
+```
+Subject: 4 days left in your MyAmari trial
+
+Hi {name},
+
+Just a heads up - your MyAmari trial ends in 4 days ({trial_end_date}).
+
+You've created {stories_created} stories so far!
+
+To keep your stories and continue creating:
+- Your {tier_name} subscription will automatically start
+- You'll be charged {price}/month
+
+Want to change plans or cancel? {manage_link}
+
+Keep the magic going!
+The MyAmari Team
+```
+
+#### 5.4.4 Day 13 Email Template
+```
+Subject: Your MyAmari trial ends tomorrow
+
+Hi {name},
+
+Your 14-day trial ends tomorrow ({trial_end_date}).
+
+What happens next:
+✓ Your {tier_name} subscription begins automatically
+✓ You'll be charged {price}
+✓ All your stories are saved
+
+Need to make changes? {manage_link}
+
+Thank you for trying MyAmari!
+The MyAmari Team
+```
+
+#### 5.4.5 Resend Implementation
+```typescript
+// lib/email/resend.ts
+import { Resend } from 'resend';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+export async function sendTrialWelcomeEmail(data: {
+  email: string;
+  name: string;
+  tierName: string;
+  storyLimit: number;
+  voiceLimit: number;
+  trialEndDate: string;
+}) {
+  await resend.emails.send({
+    from: 'MyAmari <hello@myamari.ai>',
+    to: data.email,
+    subject: 'Welcome to MyAmari! Your magical journey begins ✨',
+    react: TrialWelcomeEmail(data),
+  });
+}
+```
+
+### 5.5 Inngest Jobs for Trial Management
+
+```typescript
+// lib/inngest/functions.ts
+
+// Send Day 13 reminder (1 day before trial ends)
+export const trialEndingReminder = inngest.createFunction(
+  { id: 'trial-ending-reminder' },
+  { cron: '0 9 * * *' }, // Run daily at 9 AM
+  async ({ step }) => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const { data: endingTrials } = await supabaseAdmin
+      .from('user_subscriptions')
+      .select('*, users(*)')
+      .eq('status', 'trialing')
+      .gte('trial_end', tomorrow.toISOString())
+      .lt('trial_end', dayAfterTomorrow.toISOString());
+
+    for (const trial of endingTrials) {
+      await step.run(`send-reminder-${trial.id}`, async () => {
+        await sendTrialEndingEmail(trial);
+      });
+    }
+  }
+);
+```
+
+### 5.6 Database Changes
+
+```sql
+-- Add trial tracking columns
+ALTER TABLE user_subscriptions
+  ADD COLUMN IF NOT EXISTS trial_start TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS trial_end TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS trial_reminder_sent BOOLEAN DEFAULT false;
+
+-- Remove default free tier
+ALTER TABLE user_subscriptions
+  ALTER COLUMN tier SET DEFAULT NULL;
+```
+
+### 5.7 UI/UX Requirements
 
 | Component | Description | Priority |
 |-----------|-------------|----------|
-| **CreditBalance** | Always-visible header badge with current balance | High |
-| **CostPreview** | Shows exact credit cost before ANY generation action | High |
-| **PurchaseModal** | Credit pack selection with Stripe checkout | High |
-| **UsageHistory** | Timeline of credit usage with filtering | Medium |
-| **LowBalanceWarning** | Inline alert when balance falls below 20 credits | Medium |
-| **CostBreakdown** | Itemized cost preview (story: 8, images: 15, audio: 5 = 28 total) | Medium |
+| **TrialBanner** | Dashboard banner: "X days left in trial" with upgrade CTA | High |
+| **TrialCountdown** | Settings widget showing exact trial end date | High |
+| **PricingTrialCTA** | "Start 14-Day Trial" button replacing "Get Started Free" | High |
+| **TrialExpiredModal** | Modal when trial ends prompting subscription | Medium |
+| **TrialStatusBadge** | Header badge showing trial status | Medium |
 
 **User Flow Considerations:**
-- **Never surprise users with costs** - show price before EVERY action
-- **Insufficient credits** - graceful modal with purchase options, not error
-- **Tier benefits** - clearly show what each credit pack includes
-- **Auto-refill option** - for power users who don't want interruptions
-- **Credit expiration** - if applicable, show expiration dates clearly
+- **No surprise charges** - Clear messaging about auto-charge after trial
+- **Easy cancellation** - Prominent link to manage/cancel subscription
+- **Value demonstration** - Show stories created during trial
+- **Upgrade path** - Easy upgrade to higher tier during trial
+
+### 5.8 Testing Checklist
+
+- [ ] Dream Weaver monthly trial starts correctly
+- [ ] Dream Weaver annual trial starts correctly
+- [ ] Magic Circle monthly trial starts correctly
+- [ ] Magic Circle annual trial starts correctly
+- [ ] Enchanted Library charges immediately (no trial)
+- [ ] Trial converts to paid after 14 days
+- [ ] Cancellation during trial works
+- [ ] Upgrade during trial works
+- [ ] Webhook `trial_will_end` fires correctly
+- [ ] Welcome email sends on trial start
+- [ ] Day 10 reminder sends
+- [ ] Day 13 reminder sends
+- [ ] Pricing page shows trial CTAs
+- [ ] Dashboard shows trial status
+- [ ] No free tier options appear anywhere
+
+### 5.9 Success Metrics
+
+| Metric | Current (Free Tier) | Target (Trial) |
+|--------|---------------------|----------------|
+| Signup → Paid conversion | ~5-10% | 20-30% |
+| Trial → Paid conversion | N/A | 40-60% |
+| Revenue per signup | Low | Higher |
+| Support tickets (limits) | Frequent | Reduced |
+
+### 5.10 Environment Variables
+
+```bash
+# Resend (Email)
+RESEND_API_KEY=re_xxxxx
+```
 
 ---
 
