@@ -9,10 +9,10 @@ ALTER TABLE stories ADD COLUMN IF NOT EXISTS has_illustrations BOOLEAN DEFAULT f
 ALTER TABLE stories ADD COLUMN IF NOT EXISTS illustration_count INTEGER DEFAULT 0;
 
 -- Create story_images table for individual illustrations
+-- Note: user_id can be derived from story_id via the stories table
 CREATE TABLE IF NOT EXISTS story_images (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   story_id UUID NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   scene_number INTEGER NOT NULL,
   scene_description TEXT NOT NULL,
   prompt_used TEXT,
@@ -29,23 +29,9 @@ CREATE TABLE IF NOT EXISTS story_images (
 
 -- Create indexes
 CREATE INDEX IF NOT EXISTS idx_story_images_story_id ON story_images(story_id);
-CREATE INDEX IF NOT EXISTS idx_story_images_user_id ON story_images(user_id);
 
 -- Enable RLS
 ALTER TABLE story_images ENABLE ROW LEVEL SECURITY;
-
--- RLS Policies: Users can only see their own images
-CREATE POLICY "Users can view own images"
-  ON story_images FOR SELECT
-  USING (user_id IN (
-    SELECT id FROM users WHERE clerk_id = auth.jwt() ->> 'sub'
-  ));
-
-CREATE POLICY "Users can insert own images"
-  ON story_images FOR INSERT
-  WITH CHECK (user_id IN (
-    SELECT id FROM users WHERE clerk_id = auth.jwt() ->> 'sub'
-  ));
 
 -- Service role can do everything (for Inngest background jobs)
 CREATE POLICY "Service role full access on images"

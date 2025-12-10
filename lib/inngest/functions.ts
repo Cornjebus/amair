@@ -662,12 +662,11 @@ export const generateImagesJob = inngest.createFunction(
           .from('story-images')
           .getPublicUrl(fileName);
 
-        // Save to database
+        // Save to database (user_id derived from story via FK)
         const { data: savedImage, error: saveError } = await (supabaseAdmin as any)
           .from('story_images')
           .insert({
             story_id: storyId,
-            user_id: userId,
             scene_number: sceneNumber,
             scene_description: scene,
             prompt_used: result.revisedPrompt || scene,
