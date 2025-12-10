@@ -5,56 +5,74 @@ import { Redis } from '@upstash/redis';
 // Rate Limiting Configuration with Upstash Redis
 // =============================================================================
 
-// Initialize Redis client
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+// Check if Upstash is configured
+export const isRateLimitingEnabled = !!(
+  process.env.UPSTASH_REDIS_REST_URL &&
+  process.env.UPSTASH_REDIS_REST_TOKEN
+);
 
-// Rate limit configurations per operation type
-export const rateLimiters = {
-  // Story generation: 10 per minute for free, 30 for pro
-  storyGeneration: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(10, '1 m'),
-    analytics: true,
-    prefix: 'ratelimit:story',
-  }),
+// Initialize Redis client (only if configured)
+const redis = isRateLimitingEnabled
+  ? new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL!,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+    })
+  : null;
 
-  // Image generation: 20 per minute
-  imageGeneration: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(20, '1 m'),
-    analytics: true,
-    prefix: 'ratelimit:image',
-  }),
+// Rate limit configurations per operation type (only create if redis is configured)
+export const rateLimiters = redis
+  ? {
+      // Story generation: 10 per minute per user
+      storyGeneration: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(10, '1 m'),
+        analytics: true,
+        prefix: 'ratelimit:story',
+      }),
 
-  // Audio generation: 15 per minute
-  audioGeneration: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(15, '1 m'),
-    analytics: true,
-    prefix: 'ratelimit:audio',
-  }),
+      // Image generation: 20 per minute (DALL-E costs ~$0.04/image)
+      imageGeneration: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(20, '1 m'),
+        analytics: true,
+        prefix: 'ratelimit:image',
+      }),
 
-  // Video generation: 5 per hour (expensive!)
-  videoGeneration: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(5, '1 h'),
-    analytics: true,
-    prefix: 'ratelimit:video',
-  }),
+      // Audio generation: 15 per minute
+      audioGeneration: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(15, '1 m'),
+        analytics: true,
+        prefix: 'ratelimit:audio',
+      }),
 
-  // API general: 100 requests per minute
-  apiGeneral: new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(100, '1 m'),
-    analytics: true,
-    prefix: 'ratelimit:api',
-  }),
-};
+      // Video generation: 5 per hour (very expensive!)
+      videoGeneration: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(5, '1 h'),
+        analytics: true,
+        prefix: 'ratelimit:video',
+      }),
 
-export type RateLimiterType = keyof typeof rateLimiters;
+      // Gift code redemption: 5 per hour per IP (prevent brute force)
+      giftRedemption: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(5, '1 h'),
+        analytics: true,
+        prefix: 'ratelimit:gift',
+      }),
+
+      // API general: 100 requests per minute
+      apiGeneral: new Ratelimit({
+        redis,
+        limiter: Ratelimit.slidingWindow(100, '1 m'),
+        analytics: true,
+        prefix: 'ratelimit:api',
+      }),
+    }
+  : null;
+
+export type RateLimiterType = 'storyGeneration' | 'imageGeneration' | 'audioGeneration' | 'videoGeneration' | 'giftRedemption' | 'apiGeneral';
 
 // Rate limit check result
 export interface RateLimitResult {
@@ -67,21 +85,53 @@ export interface RateLimitResult {
 
 /**
  * Check rate limit for a given identifier and limiter type
+ * Returns success: true if rate limiting is not configured (fail open)
  */
 export async function checkRateLimit(
   identifier: string,
   type: RateLimiterType = 'apiGeneral'
 ): Promise<RateLimitResult> {
-  const limiter = rateLimiters[type];
-  const result = await limiter.limit(identifier);
+  // If rate limiting is not configured, allow all requests
+  if (!rateLimiters) {
+    return {
+      success: true,
+      limit: 999,
+      remaining: 999,
+      reset: 0,
+    };
+  }
 
-  return {
-    success: result.success,
-    limit: result.limit,
-    remaining: result.remaining,
-    reset: result.reset,
-    retryAfter: result.success ? undefined : Math.ceil((result.reset - Date.now()) / 1000),
-  };
+  const limiter = rateLimiters[type];
+  if (!limiter) {
+    console.warn(`[rate-limit] Unknown limiter type: ${type}`);
+    return {
+      success: true,
+      limit: 999,
+      remaining: 999,
+      reset: 0,
+    };
+  }
+
+  try {
+    const result = await limiter.limit(identifier);
+
+    return {
+      success: result.success,
+      limit: result.limit,
+      remaining: result.remaining,
+      reset: result.reset,
+      retryAfter: result.success ? undefined : Math.ceil((result.reset - Date.now()) / 1000),
+    };
+  } catch (error) {
+    console.error('[rate-limit] Error checking rate limit:', error);
+    // Fail open on error - allow the request
+    return {
+      success: true,
+      limit: 999,
+      remaining: 999,
+      reset: 0,
+    };
+  }
 }
 
 /**
@@ -90,7 +140,7 @@ export async function checkRateLimit(
 export async function withRateLimit(
   identifier: string,
   type: RateLimiterType = 'apiGeneral'
-): Promise<{ allowed: boolean; headers: Record<string, string> }> {
+): Promise<{ allowed: boolean; headers: Record<string, string>; result: RateLimitResult }> {
   const result = await checkRateLimit(identifier, type);
 
   const headers: Record<string, string> = {
@@ -106,7 +156,53 @@ export async function withRateLimit(
   return {
     allowed: result.success,
     headers,
+    result,
   };
+}
+
+/**
+ * Create a 429 Too Many Requests response
+ */
+export function rateLimitResponse(result: RateLimitResult, message?: string): Response {
+  const retryAfter = result.retryAfter || 60;
+
+  return Response.json(
+    {
+      error: message || 'Too many requests. Please try again later.',
+      retryAfter,
+    },
+    {
+      status: 429,
+      headers: {
+        'X-RateLimit-Limit': result.limit.toString(),
+        'X-RateLimit-Remaining': result.remaining.toString(),
+        'X-RateLimit-Reset': result.reset.toString(),
+        'Retry-After': retryAfter.toString(),
+      },
+    }
+  );
+}
+
+/**
+ * Get client IP from request headers
+ */
+export function getClientIP(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    return forwarded.split(',')[0].trim();
+  }
+
+  const realIP = request.headers.get('x-real-ip');
+  if (realIP) {
+    return realIP;
+  }
+
+  const vercelIP = request.headers.get('x-vercel-forwarded-for');
+  if (vercelIP) {
+    return vercelIP.split(',')[0].trim();
+  }
+
+  return 'unknown';
 }
 
 /**
@@ -128,8 +224,13 @@ export function getTierMultiplier(tier: string): number {
 
 /**
  * Create a tier-aware rate limiter
+ * Returns null if redis is not configured
  */
-export function createTierRateLimiter(baseLimit: number, windowMs: number, tier: string) {
+export function createTierRateLimiter(baseLimit: number, windowMs: number, tier: string): Ratelimit | null {
+  if (!redis) {
+    return null;
+  }
+
   const multiplier = getTierMultiplier(tier);
   const adjustedLimit = Math.floor(baseLimit * multiplier);
 

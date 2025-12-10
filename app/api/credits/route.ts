@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { CreditService } from '@/lib/credits/credit-service';
 import { captureError } from '@/lib/monitoring/sentry';
-import { rateLimiters } from '@/lib/rate-limit';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 // =============================================================================
 // GET /api/credits - Get user's credit balance and account info
@@ -91,12 +91,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit credit operations
-    const rateLimitResult = await rateLimiters.apiGeneral.limit(userId);
+    const rateLimitResult = await checkRateLimit(userId, 'apiGeneral');
     if (!rateLimitResult.success) {
-      return NextResponse.json(
-        { error: 'Rate limit exceeded' },
-        { status: 429 }
-      );
+      return rateLimitResponse(rateLimitResult);
     }
 
     const body = await request.json();

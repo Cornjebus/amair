@@ -5,6 +5,7 @@ import { inngest } from '@/lib/inngest/client';
 import { isVoicePremium, getVoiceById, getDefaultVoice } from '@/lib/elevenlabs/client';
 import { getUserSubscription } from '@/lib/subscription/manager';
 import { TIER_CONFIG } from '@/lib/subscription/tiers';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 // =============================================================================
 // POST /api/generate-audio - Start async audio generation
@@ -15,6 +16,12 @@ export async function POST(req: Request) {
 
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const rateLimit = await checkRateLimit(clerkUserId, 'audioGeneration');
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, 'Too many audio generation requests. Please wait a moment.');
     }
 
     // Get user from database

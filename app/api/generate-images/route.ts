@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { inngest } from '@/lib/inngest/client';
 import { ART_STYLES, ArtStyle } from '@/lib/ai/image-generator';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 // =============================================================================
 // POST /api/generate-images - Start async image generation
@@ -13,6 +14,12 @@ export async function POST(req: Request) {
 
     if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check (images are expensive!)
+    const rateLimit = await checkRateLimit(clerkUserId, 'imageGeneration');
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, 'Too many image generation requests. Please wait a moment.');
     }
 
     // Get user from database

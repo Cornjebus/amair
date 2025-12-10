@@ -5,6 +5,7 @@ import { syncUserToSupabase } from '@/lib/supabase/sync-user';
 import { getUserSubscription } from '@/lib/subscription/manager';
 import { canGenerateStory, getCurrentUsage } from '@/lib/subscription/usage';
 import { inngest } from '@/lib/inngest/client';
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 interface ChildData {
   name: string;
@@ -27,6 +28,12 @@ export async function POST(req: Request) {
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Rate limit check
+    const rateLimit = await checkRateLimit(userId, 'storyGeneration');
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit, 'Too many story generation requests. Please wait a moment.');
     }
 
     // Get Clerk user details

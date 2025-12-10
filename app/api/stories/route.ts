@@ -5,7 +5,7 @@ import { syncUserToSupabase } from '@/lib/supabase/sync-user'
 import { createStoryOrchestrator, StoryGenerationOptions } from '@/lib/story/orchestrator'
 import { InsufficientCreditsError } from '@/lib/credits/credit-service'
 import { captureError } from '@/lib/monitoring/sentry'
-import { rateLimiters } from '@/lib/rate-limit'
+import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
 import { z } from 'zod'
 
 // =============================================================================
@@ -98,15 +98,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Rate limit story generation (expensive operation)
-    const rateLimitResult = await rateLimiters.storyGeneration.limit(clerkId)
+    const rateLimitResult = await checkRateLimit(clerkId, 'storyGeneration')
     if (!rateLimitResult.success) {
-      return NextResponse.json(
-        {
-          error: 'Rate limit exceeded. Please wait before generating another story.',
-          retryAfter: rateLimitResult.reset,
-        },
-        { status: 429 }
-      )
+      return rateLimitResponse(rateLimitResult, 'Rate limit exceeded. Please wait before generating another story.')
     }
 
     // Get Clerk user details
