@@ -13,6 +13,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/gifts/packages(.*)', // Public: gift packages info
   '/api/gifts/redeem(.*)',   // Public: gift code validation (GET only)
   '/api/subscriptions/prices(.*)', // Public: subscription prices
+  '/api/voices(.*)',         // Public: voice options
+  '/api/art-styles(.*)',     // Public: art style options
+  '/api/credits/packages(.*)', // Public: credit package info
 ])
 
 export default clerkMiddleware((auth, request) => {
