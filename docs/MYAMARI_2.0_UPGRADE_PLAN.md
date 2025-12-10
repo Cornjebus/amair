@@ -137,16 +137,20 @@ This document outlines the complete technical implementation plan to upgrade MyA
 | Feature | Current Status | Target State |
 |---------|---------------|--------------|
 | Story Generation | GPT-4 Turbo | Claude Sonnet 4.5 + GPT-4o |
-| Image Generation | None | GPT-4o native + Flux.1 |
-| Audio Narration | Browser Web Speech API | ElevenLabs + Voice Cloning |
+| Image Generation | ✅ **DALL-E 3 (5 art styles)** | GPT-4o native + Flux.1 |
+| Audio Narration | ✅ **ElevenLabs (6 voices)** | ElevenLabs + Voice Cloning |
 | Video Generation | None | Sora 2 API + Runway fallback |
-| Monetization | Tier-based (3-60 stories/mo) | Credit-based system |
+| Monetization | ✅ **14-day Trial Model** | Trial + Tier-based (see SUBSCRIPTION_TRIAL_IMPLEMENTATION.md) |
 | Character Persistence | None | Family Universe + Memory |
 | Input Method | Multi-step wizard | Natural language first |
 | Mobile | None | React Native Expo app |
 | Testing | None | Vitest + Playwright E2E |
 | Observability | None | Sentry + PostHog |
 | Security | Basic | Rate limiting + COPPA compliance |
+
+> **Note (Dec 2025):** Phase 2 (Images) and Phase 3 (Audio) are COMPLETE.
+> Phase 5 (Credit System) is DEFERRED in favor of 14-day trial model.
+> See `docs/SUBSCRIPTION_TRIAL_IMPLEMENTATION.md` for trial implementation details.
 
 ### Complete Tech Stack
 
