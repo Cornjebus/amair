@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ART_STYLES } from '@/lib/ai/image-generator';
+import { ART_STYLES } from '@/lib/ai/art-styles';
 
 // =============================================================================
 // GET /api/art-styles - Get available illustration styles
