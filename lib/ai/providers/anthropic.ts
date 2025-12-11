@@ -121,6 +121,14 @@ export class AnthropicProvider implements StoryProvider {
       parts.push(`Character description for illustrations: ${request.characterDescription}`);
     }
 
+    // Add universe context (recurring characters, memories from previous stories)
+    if (request.universeContext) {
+      parts.push('\n--- FAMILY STORY UNIVERSE CONTEXT ---');
+      parts.push(request.universeContext);
+      parts.push('--- END CONTEXT ---\n');
+      parts.push('Use the above context to make the story feel connected to previous adventures. You may subtly reference past events or use established character traits.');
+    }
+
     parts.push('\nRespond with valid JSON only.');
 
     return parts.join('\n');

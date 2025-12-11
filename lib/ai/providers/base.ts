@@ -17,6 +17,7 @@ export interface StoryGenerationRequest {
   duration: 'short' | 'medium' | 'long';
   customElements?: string[];
   characterDescription?: string;
+  universeContext?: string; // Context from family universe (characters, memories)
 }
 
 export interface StoryGenerationResponse {

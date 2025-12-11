@@ -6,17 +6,24 @@ import { getUserSubscription } from '@/lib/subscription/manager'
 import { canGenerateStory, trackStoryGeneration, getCurrentUsage } from '@/lib/subscription/usage'
 import { getAIService } from '@/lib/ai'
 import { captureError } from '@/lib/monitoring/sentry'
+import {
+  buildUniverseContext,
+  extractStoryMemory,
+  linkCharactersToStory,
+} from '@/lib/universe/context-builder'
 
 interface ChildData {
   name: string
   gender: 'boy' | 'girl' | 'other'
   itemCount: number
   items: string[]
+  characterId?: string // Optional: link to existing character
 }
 
 interface StoryConfig {
   tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
   length: 'quick' | 'medium' | 'epic'
+  characterIds?: string[] // Optional: use existing characters
 }
 
 export async function POST(req: Request) {
@@ -110,6 +117,12 @@ export async function POST(req: Request) {
       .map(c => `${c.name} (${c.gender === 'girl' ? 'girl' : c.gender === 'boy' ? 'boy' : 'child'})`)
       .join(', ')
 
+    // Get character IDs from children or config
+    const characterIds = config.characterIds || children.map(c => c.characterId).filter(Boolean) as string[]
+
+    // Build universe context for AI (character memories, previous stories)
+    const universeContext = await buildUniverseContext(user.id, characterIds)
+
     // Initialize AI service with user context for tracking
     const aiService = getAIService({
       userId: user.id,
@@ -129,6 +142,10 @@ export async function POST(req: Request) {
         duration,
         customElements,
         characterDescription,
+        // Add universe context if available
+        ...(universeContext?.contextPrompt && {
+          universeContext: universeContext.contextPrompt,
+        }),
       })
     } catch (aiError) {
       captureError(aiError as Error, {
@@ -173,6 +190,12 @@ export async function POST(req: Request) {
         seed_items: child.items,
       })
     }
+
+    // Link characters to story and extract memory (non-blocking)
+    if (characterIds.length > 0) {
+      linkCharactersToStory(story.id, characterIds).catch(console.error)
+    }
+    extractStoryMemory(user.id, story.id, content, characterIds).catch(console.error)
 
     // Track story generation for usage limits
     await trackStoryGeneration(user.id, { usedPremiumVoice: usePremiumVoice })
