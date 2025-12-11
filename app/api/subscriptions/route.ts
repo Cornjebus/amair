@@ -59,27 +59,30 @@ export async function GET() {
       error: subError?.message,
     });
 
-    // If no subscription exists, return free tier defaults
+    // If no subscription exists, user needs to subscribe
     if (subError || !subscription) {
-      console.log('[Subscriptions] Returning free tier defaults for user:', user.id);
-      const freeLimits = TIER_CONFIG.free;
+      console.log('[Subscriptions] No subscription found for user:', user.id);
       return NextResponse.json({
         tier: 'free',
-        billingCycle: 'free',
-        status: 'active',
-        currentPeriodStart: new Date().toISOString(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        billingCycle: null,
+        status: 'none',
+        requiresSubscription: true, // Key flag to redirect to pricing
+        currentPeriodStart: null,
+        currentPeriodEnd: null,
         storiesUsed: 0,
         premiumVoicesUsed: 0,
         limits: {
-          storiesPerMonth: freeLimits.monthly_stories,
-          premiumVoicesPerMonth: freeLimits.monthly_premium_voices,
-          savedStories: freeLimits.max_saved_stories,
-          childProfiles: freeLimits.max_children,
+          storiesPerMonth: 0,
+          premiumVoicesPerMonth: 0,
+          savedStories: 0,
+          childProfiles: 0,
         },
-        storiesRemaining: freeLimits.monthly_stories,
-        premiumVoicesRemaining: freeLimits.monthly_premium_voices,
+        storiesRemaining: 0,
+        premiumVoicesRemaining: 0,
         cancelAtPeriodEnd: false,
+        isOnTrial: false,
+        trialEnd: null,
+        trialDaysRemaining: 0,
       });
     }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
 import {
@@ -115,6 +115,8 @@ export default function PricingPage() {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const { isSignedIn } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isOnboarding = searchParams.get('onboarding') === 'true';
 
   const handleSubscribe = async (tier: PricingTierExtended) => {
     if (!isSignedIn) {
@@ -181,10 +183,31 @@ export default function PricingPage() {
         </div>
       </header>
 
+      {/* Onboarding Banner */}
+      {isOnboarding && (
+        <section className="py-6 px-4 bg-gradient-to-r from-lavender-100 to-skyblue-100 border-b border-lavender-200">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles className="h-6 w-6 text-lavender-600" />
+              <h2 className="text-xl font-bold text-lavender-900">Welcome to Amari!</h2>
+            </div>
+            <p className="text-lavender-700">
+              Choose a plan to start creating personalized bedtime stories for your child.
+              <br />
+              <span className="font-medium">Try free for 14 days - your card won't be charged until the trial ends.</span>
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* Hero */}
       <section className="py-12 px-4 text-center">
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          Choose Your <span className="text-lavender-600">Story Plan</span>
+          {isOnboarding ? (
+            <>One More Step to <span className="text-lavender-600">Magic</span></>
+          ) : (
+            <>Choose Your <span className="text-lavender-600">Story Plan</span></>
+          )}
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-4">
           Magical bedtime stories personalized for your child.

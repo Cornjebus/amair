@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -54,6 +55,7 @@ interface SubscriptionData {
 
 export default function DashboardPage() {
   const { user } = useUser()
+  const router = useRouter()
   const [stats, setStats] = useState({
     totalStories: 0,
     thisMonth: 0,
@@ -106,6 +108,13 @@ export default function DashboardPage() {
 
         if (subscriptionResponse.ok) {
           const subData = await subscriptionResponse.json()
+
+          // If user requires subscription (no active plan), redirect to pricing
+          if (subData.requiresSubscription) {
+            router.push('/pricing?onboarding=true')
+            return
+          }
+
           setSubscription({
             tier: subData.tier || 'free',
             status: subData.status || 'free',
@@ -118,6 +127,10 @@ export default function DashboardPage() {
             trialEnd: subData.trialEnd || null,
             trialDaysRemaining: subData.trialDaysRemaining || 0,
           })
+        } else {
+          // If subscription fetch fails, redirect to pricing
+          router.push('/pricing?onboarding=true')
+          return
         }
       } catch (error) {
         console.error('Error loading dashboard:', error)
