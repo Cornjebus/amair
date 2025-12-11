@@ -420,3 +420,76 @@ export async function handleGiftPurchaseCompleted(
     throw error
   }
 }
+
+// =============================================================================
+// TRIAL SYSTEM HANDLERS
+// =============================================================================
+
+/**
+ * Handle customer.subscription.trial_will_end event
+ * Stripe sends this 3 days before trial ends
+ */
+export async function handleTrialWillEnd(
+  subscription: Stripe.Subscription,
+  supabase: SupabaseClient
+) {
+  const customerId = subscription.customer as string
+  const tier = getTierFromSubscription(subscription)
+
+  // Get trial end date
+  const trialEnd = subscription.trial_end
+    ? new Date(subscription.trial_end * 1000)
+    : null
+
+  console.log('[Webhook] Trial will end:', {
+    subscriptionId: subscription.id,
+    customerId,
+    tier,
+    trialEnd: trialEnd?.toISOString(),
+  })
+
+  try {
+    // Get user by Stripe customer ID
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email, first_name')
+      .eq('stripe_customer_id', customerId)
+      .single()
+
+    if (userError || !user) {
+      console.error('[Webhook] User not found for trial_will_end:', customerId)
+      return
+    }
+
+    // Send trial ending email
+    const { sendTrialEndingEmail } = await import('@/lib/email/resend')
+    const { TIER_INFO } = await import('@/lib/subscription/tiers')
+
+    const tierInfo = TIER_INFO[tier]
+
+    await sendTrialEndingEmail(user.email, {
+      name: user.first_name || 'there',
+      tierName: tierInfo.displayName,
+      trialEndDate: trialEnd?.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      }) || 'soon',
+      price: `$${tierInfo.monthlyPrice}/month`,
+    })
+
+    captureMessage('Trial ending email sent', 'info', {
+      userId: user.id,
+      tier,
+      trialEnd: trialEnd?.toISOString(),
+    })
+
+    console.log(`[Webhook] Trial ending email sent to ${user.email}`)
+  } catch (error) {
+    captureError(error as Error, {
+      action: 'handle_trial_will_end',
+      metadata: { customerId, subscriptionId: subscription.id },
+    })
+    // Don't throw - email failure shouldn't fail the webhook
+  }
+}

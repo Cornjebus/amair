@@ -11,6 +11,7 @@ import {
   handlePaymentSucceeded,
   handleGiftPurchaseCompleted,
   handleNewSubscription,
+  handleTrialWillEnd,
 } from '@/lib/subscription/webhook-handlers'
 
 export async function POST(req: Request) {
@@ -75,6 +76,12 @@ export async function POST(req: Request) {
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object as Stripe.Invoice
         await handlePaymentSucceeded(invoice)
+        break
+      }
+
+      case 'customer.subscription.trial_will_end': {
+        const subscription = event.data.object as Stripe.Subscription
+        await handleTrialWillEnd(subscription, supabaseAdmin)
         break
       }
 

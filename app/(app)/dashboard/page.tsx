@@ -5,7 +5,7 @@ import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Sparkles, BookOpen, Zap, Crown, Star, ArrowRight, Gift, Mic } from 'lucide-react'
+import { Sparkles, BookOpen, Zap, Crown, Star, ArrowRight, Gift, Mic, Clock } from 'lucide-react'
 
 // Subscription tier configuration
 const TIER_CONFIG = {
@@ -47,6 +47,9 @@ interface SubscriptionData {
   premiumVoicesUsed: number
   premiumVoicesLimit: number
   currentPeriodEnd: string | null
+  isOnTrial: boolean
+  trialEnd: string | null
+  trialDaysRemaining: number
 }
 
 export default function DashboardPage() {
@@ -63,6 +66,9 @@ export default function DashboardPage() {
     premiumVoicesUsed: 0,
     premiumVoicesLimit: 0,
     currentPeriodEnd: null,
+    isOnTrial: false,
+    trialEnd: null,
+    trialDaysRemaining: 0,
   })
   const [recentStories, setRecentStories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -108,6 +114,9 @@ export default function DashboardPage() {
             premiumVoicesUsed: subData.premiumVoicesUsed || 0,
             premiumVoicesLimit: subData.limits?.premiumVoicesPerMonth || 0,
             currentPeriodEnd: subData.currentPeriodEnd || null,
+            isOnTrial: subData.isOnTrial || false,
+            trialEnd: subData.trialEnd || null,
+            trialDaysRemaining: subData.trialDaysRemaining || 0,
           })
         }
       } catch (error) {
@@ -227,8 +236,44 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Trial Status Banner */}
+      {subscription.isOnTrial && (
+        <Card className="bg-gradient-to-r from-lavender-100 to-skyblue-100 border-lavender-300">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white rounded-full">
+                  <Clock className="h-8 w-8 text-lavender-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-playfair font-bold text-lavender-900">
+                    {subscription.trialDaysRemaining} days left in your free trial
+                  </h3>
+                  <p className="text-lavender-700">
+                    You're enjoying {tierConfig.name} features. Your trial ends{' '}
+                    {subscription.trialEnd
+                      ? new Date(subscription.trialEnd).toLocaleDateString('en-US', {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                      : 'soon'}
+                    .
+                  </p>
+                </div>
+              </div>
+              <Link href="/settings/subscription">
+                <Button variant="outline" className="border-lavender-400 hover:bg-lavender-50">
+                  Manage Subscription
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Low Stories Warning / Upgrade Banner */}
-      {isLowOnStories && (
+      {isLowOnStories && !subscription.isOnTrial && (
         <Card className="bg-gradient-to-r from-lavender-500 to-skyblue-500 text-white border-none">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">

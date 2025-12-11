@@ -38,26 +38,11 @@ interface PricingTier {
   ctaText: string;
 }
 
-const tiers: PricingTier[] = [
-  {
-    name: 'Free',
-    slug: 'free',
-    monthlyPrice: 0,
-    annualPrice: 0,
-    description: 'Perfect for trying Amari',
-    storiesPerMonth: 3,
-    premiumVoices: 0,
-    icon: <BookOpen className="h-6 w-6" />,
-    features: [
-      { text: '3 stories per month', included: true },
-      { text: 'Web voice narration', included: true },
-      { text: '2 child profiles', included: true },
-      { text: '5 saved stories', included: true },
-      { text: 'Premium AI voices', included: false },
-      { text: 'Story downloads', included: false },
-    ],
-    ctaText: 'Get Started Free',
-  },
+interface PricingTierExtended extends PricingTier {
+  hasTrial?: boolean;
+}
+
+const tiers: PricingTierExtended[] = [
   {
     name: 'Dream Weaver',
     slug: 'dream_weaver',
@@ -67,15 +52,16 @@ const tiers: PricingTier[] = [
     storiesPerMonth: 10,
     premiumVoices: 3,
     icon: <Star className="h-6 w-6" />,
+    hasTrial: true,
     features: [
       { text: '10 stories per month', included: true },
       { text: '3 premium voice stories', included: true },
       { text: '3 child profiles', included: true },
       { text: 'Unlimited saved stories', included: true },
+      { text: 'AI-generated illustrations', included: true },
       { text: 'Story downloads', included: true },
-      { text: 'Basic themes', included: true },
     ],
-    ctaText: 'Start Dream Weaver',
+    ctaText: 'Start 14-Day Free Trial',
   },
   {
     name: 'Magic Circle',
@@ -87,17 +73,17 @@ const tiers: PricingTier[] = [
     premiumVoices: 15,
     icon: <Sparkles className="h-6 w-6" />,
     highlighted: true,
+    hasTrial: true,
     features: [
       { text: '30 stories per month', included: true },
       { text: '15 premium voice stories', included: true },
       { text: '5 child profiles', included: true },
+      { text: 'AI-generated illustrations', included: true },
       { text: 'Family sharing (2 accounts)', included: true },
       { text: 'Premium themes', included: true },
-      { text: 'Scheduled story delivery', included: true },
-      { text: 'Story analytics', included: true },
       { text: 'PDF & MP3 downloads', included: true },
     ],
-    ctaText: 'Join Magic Circle',
+    ctaText: 'Start 14-Day Free Trial',
   },
   {
     name: 'Enchanted Library',
@@ -108,18 +94,19 @@ const tiers: PricingTier[] = [
     storiesPerMonth: 60,
     premiumVoices: 60,
     icon: <Crown className="h-6 w-6" />,
+    hasTrial: false,
     features: [
       { text: '60 stories per month', included: true },
       { text: 'All premium voices', included: true },
       { text: 'Unlimited child profiles', included: true },
+      { text: 'AI-generated illustrations', included: true },
       { text: 'Family sharing (4 accounts)', included: true },
       { text: 'Character voices', included: true },
       { text: 'Custom themes', included: true },
       { text: 'Priority support', included: true },
       { text: 'Early access to features', included: true },
-      { text: '1 free gift subscription/year', included: true },
     ],
-    ctaText: 'Unlock Everything',
+    ctaText: 'Subscribe Now',
   },
 ];
 
@@ -129,16 +116,7 @@ export default function PricingPage() {
   const { isSignedIn } = useAuth();
   const router = useRouter();
 
-  const handleSubscribe = async (tier: PricingTier) => {
-    if (tier.slug === 'free') {
-      if (isSignedIn) {
-        router.push('/dashboard');
-      } else {
-        router.push('/sign-up');
-      }
-      return;
-    }
-
+  const handleSubscribe = async (tier: PricingTierExtended) => {
     if (!isSignedIn) {
       // Redirect to sign up with return URL
       router.push(`/sign-up?redirect=/pricing&tier=${tier.slug}&billing=${billingCycle}`);
@@ -208,8 +186,11 @@ export default function PricingPage() {
         <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
           Choose Your <span className="text-lavender-600">Story Plan</span>
         </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-          Magical bedtime stories personalized for your child. Start free, upgrade anytime.
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-4">
+          Magical bedtime stories personalized for your child.
+        </p>
+        <p className="text-lg text-lavender-600 font-medium mb-8">
+          Start with a 14-day free trial. Cancel anytime.
         </p>
 
         {/* Billing Toggle */}
@@ -246,7 +227,7 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <section className="pb-20 px-4">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           {tiers.map((tier) => (
             <div
               key={tier.slug}
@@ -260,6 +241,13 @@ export default function PricingPage() {
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full">
                     MOST POPULAR
+                  </span>
+                </div>
+              )}
+              {tier.hasTrial && !tier.highlighted && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                    14-DAY FREE TRIAL
                   </span>
                 </div>
               )}
@@ -461,13 +449,15 @@ export default function PricingPage() {
           </h2>
           <p className="text-lg text-lavender-100 mb-8">
             Join thousands of families creating magical bedtime memories.
+            <br />
+            <span className="font-medium">Try free for 14 days - no commitment required.</span>
           </p>
           <Link
             href="/sign-up"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white text-lavender-600 rounded-full font-semibold hover:bg-lavender-50 transition-colors shadow-lg"
           >
             <Sparkles className="h-5 w-5" />
-            Start Free Today
+            Start Your Free Trial
           </Link>
         </div>
       </section>

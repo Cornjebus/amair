@@ -30,13 +30,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { tier, billingCycle = 'monthly' } = body;
 
-    // Validate tier
-    if (!tier || !['dream_weaver', 'magic_circle', 'enchanted_library'].includes(tier)) {
+    // Validate tier (free tier removed - only paid tiers available)
+    const validTiers = ['dream_weaver', 'magic_circle', 'enchanted_library'];
+    if (!tier || !validTiers.includes(tier)) {
       return NextResponse.json(
         { error: 'Invalid subscription tier' },
         { status: 400 }
       );
     }
+
+    // Determine if this tier gets a trial (Dream Weaver and Magic Circle get 14-day trial)
+    const tiersWithTrial = ['dream_weaver', 'magic_circle'];
+    const hasTrial = tiersWithTrial.includes(tier);
 
     // Validate billing cycle
     if (!['monthly', 'annual'].includes(billingCycle)) {
@@ -130,7 +135,7 @@ export async function POST(request: NextRequest) {
         .eq('billing_cycle', billingCycle);
     }
 
-    // Create checkout session
+    // Create checkout session with trial for eligible tiers
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
@@ -149,6 +154,7 @@ export async function POST(request: NextRequest) {
         clerkId: clerkUserId,
         tier,
         billingCycle,
+        hasTrial: hasTrial ? 'true' : 'false',
       },
       subscription_data: {
         metadata: {
@@ -157,6 +163,8 @@ export async function POST(request: NextRequest) {
           tier,
           billingCycle,
         },
+        // Add 14-day trial for Dream Weaver and Magic Circle
+        ...(hasTrial && { trial_period_days: 14 }),
       },
       allow_promotion_codes: true,
     });

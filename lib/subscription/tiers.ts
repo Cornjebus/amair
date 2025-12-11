@@ -2,9 +2,19 @@
  * Subscription Tier Management
  *
  * Handles tier configuration, limits, and feature access
+ *
+ * NOTE: Free tier is deprecated as of Dec 2025.
+ * New users get 14-day trial on Dream Weaver or Magic Circle instead.
+ * Free tier kept for backwards compatibility with existing code.
  */
 
 export type SubscriptionTier = 'free' | 'dream_weaver' | 'magic_circle' | 'enchanted_library'
+
+// Tiers that offer 14-day free trial
+export const TRIAL_ELIGIBLE_TIERS: SubscriptionTier[] = ['dream_weaver', 'magic_circle']
+
+// Trial duration in days
+export const TRIAL_DURATION_DAYS = 14
 
 export interface TierLimits {
   monthly_stories: number
@@ -198,4 +208,61 @@ export function isDowngrade(currentTier: SubscriptionTier, newTier: Subscription
 
 export function getTierRank(tier: SubscriptionTier): number {
   return TIER_HIERARCHY.indexOf(tier)
+}
+
+// =============================================================================
+// Trial System Helpers
+// =============================================================================
+
+/**
+ * Check if a tier is eligible for a free trial
+ */
+export function isTrialEligible(tier: SubscriptionTier): boolean {
+  return TRIAL_ELIGIBLE_TIERS.includes(tier)
+}
+
+/**
+ * Get trial end date from start date
+ */
+export function getTrialEndDate(startDate: Date = new Date()): Date {
+  const endDate = new Date(startDate)
+  endDate.setDate(endDate.getDate() + TRIAL_DURATION_DAYS)
+  return endDate
+}
+
+/**
+ * Calculate days remaining in trial
+ */
+export function getTrialDaysRemaining(trialEndDate: Date | string): number {
+  const end = new Date(trialEndDate)
+  const now = new Date()
+  const diffMs = end.getTime() - now.getTime()
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  return Math.max(0, diffDays)
+}
+
+/**
+ * Check if trial has expired
+ */
+export function isTrialExpired(trialEndDate: Date | string): boolean {
+  return getTrialDaysRemaining(trialEndDate) <= 0
+}
+
+/**
+ * Get paid tiers only (excludes free)
+ */
+export function getPaidTiers(): SubscriptionTier[] {
+  return ['dream_weaver', 'magic_circle', 'enchanted_library']
+}
+
+/**
+ * Format trial end date for display
+ */
+export function formatTrialEndDate(trialEndDate: Date | string): string {
+  const date = new Date(trialEndDate)
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  })
 }

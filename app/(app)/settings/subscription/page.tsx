@@ -17,6 +17,8 @@ import {
   Loader2,
   Gift,
   Check,
+  Clock,
+  AlertCircle,
 } from 'lucide-react'
 
 const TIER_CONFIG = {
@@ -39,6 +41,9 @@ interface SubscriptionData {
   }
   cancelAtPeriodEnd: boolean
   stripeSubscriptionId?: string
+  isOnTrial?: boolean
+  trialEnd?: string | null
+  trialDaysRemaining?: number
 }
 
 export default function SubscriptionSettingsPage() {
@@ -103,6 +108,8 @@ export default function SubscriptionSettingsPage() {
   const tierConfig = TIER_CONFIG[subscription.tier] || TIER_CONFIG.free
   const TierIcon = tierConfig.icon
   const isPaid = subscription.tier !== 'free'
+  const isOnTrial = subscription.isOnTrial || false
+  const trialDaysRemaining = subscription.trialDaysRemaining || 0
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -115,8 +122,47 @@ export default function SubscriptionSettingsPage() {
         </p>
       </div>
 
+      {/* Trial Status Banner */}
+      {isOnTrial && (
+        <Card className="bg-gradient-to-r from-lavender-100 to-skyblue-100 border-lavender-300">
+          <CardContent className="py-6">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white rounded-full">
+                <Clock className="h-8 w-8 text-lavender-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold text-lavender-900">
+                  {trialDaysRemaining} days left in your free trial
+                </h3>
+                <p className="text-lavender-700">
+                  Your trial ends{' '}
+                  {subscription.trialEnd
+                    ? new Date(subscription.trialEnd).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                      })
+                    : 'soon'}
+                  . After that, your subscription will begin automatically.
+                </p>
+              </div>
+            </div>
+            {trialDaysRemaining <= 3 && (
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div className="text-sm text-amber-800">
+                  <strong>Your trial is ending soon!</strong> After your trial ends, you'll be charged for the{' '}
+                  {subscription.billingCycle === 'annual' ? 'annual' : 'monthly'} subscription.
+                  You can cancel anytime from Manage Billing below.
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Current Plan */}
-      <Card className={isPaid ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50' : ''}>
+      <Card className={isPaid && !isOnTrial ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50' : isOnTrial ? 'border-lavender-300' : ''}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -126,12 +172,16 @@ export default function SubscriptionSettingsPage() {
               <div>
                 <CardTitle className="text-xl">{tierConfig.name}</CardTitle>
                 <CardDescription>
-                  {isPaid ? `${subscription.billingCycle === 'annual' ? 'Annual' : 'Monthly'} subscription` : 'Free plan'}
+                  {isOnTrial
+                    ? '14-day free trial'
+                    : isPaid
+                    ? `${subscription.billingCycle === 'annual' ? 'Annual' : 'Monthly'} subscription`
+                    : 'Free plan'}
                 </CardDescription>
               </div>
             </div>
-            <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
-              {subscription.status === 'active' ? 'Active' : subscription.status}
+            <Badge variant={isOnTrial ? 'outline' : subscription.status === 'active' ? 'default' : 'secondary'} className={isOnTrial ? 'border-lavender-400 text-lavender-700' : ''}>
+              {isOnTrial ? 'Trial' : subscription.status === 'active' ? 'Active' : subscription.status}
             </Badge>
           </div>
         </CardHeader>
@@ -159,7 +209,7 @@ export default function SubscriptionSettingsPage() {
           </div>
 
           {/* Renewal Info */}
-          {isPaid && subscription.currentPeriodEnd && (
+          {isPaid && subscription.currentPeriodEnd && !isOnTrial && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar className="h-4 w-4" />
               {subscription.cancelAtPeriodEnd ? (
@@ -167,6 +217,19 @@ export default function SubscriptionSettingsPage() {
               ) : (
                 <span>Renews on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}</span>
               )}
+            </div>
+          )}
+
+          {/* Trial billing info */}
+          {isOnTrial && (
+            <div className="flex items-center gap-2 text-sm text-lavender-600">
+              <CreditCard className="h-4 w-4" />
+              <span>
+                First charge on{' '}
+                {subscription.trialEnd
+                  ? new Date(subscription.trialEnd).toLocaleDateString()
+                  : 'trial end'}
+              </span>
             </div>
           )}
 
