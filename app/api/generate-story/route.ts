@@ -1,25 +1,11 @@
 import { NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
-import OpenAI from 'openai'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { syncUserToSupabase } from '@/lib/supabase/sync-user'
 import { getUserSubscription } from '@/lib/subscription/manager'
 import { canGenerateStory, trackStoryGeneration, getCurrentUsage } from '@/lib/subscription/usage'
-
-// Initialize OpenAI client (lazy initialization to avoid build-time errors)
-let openai: OpenAI | null = null
-
-function getOpenAIClient() {
-  if (!openai) {
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error('Missing OPENAI_API_KEY')
-    }
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-  }
-  return openai
-}
+import { getAIService } from '@/lib/ai'
+import { captureError } from '@/lib/monitoring/sentry'
 
 interface ChildData {
   name: string
@@ -31,25 +17,6 @@ interface ChildData {
 interface StoryConfig {
   tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
   length: 'quick' | 'medium' | 'epic'
-}
-
-const getLengthInstructions = (length: string): string => {
-  const instructions = {
-    quick: 'Keep the story brief and engaging, about 300-400 words. Perfect for a quick bedtime story.',
-    medium: 'Create a medium-length story of about 600-800 words with a clear beginning, middle, and end.',
-    epic: 'Craft a longer, more detailed story of about 1200-1500 words with rich descriptions and character development.',
-  }
-  return instructions[length as keyof typeof instructions] || instructions.medium
-}
-
-const getToneInstructions = (tone: string): string => {
-  const instructions = {
-    'bedtime-calm': 'Use gentle, soothing language. The story should be warm and comforting, perfect for helping children wind down for sleep. Include peaceful imagery and a cozy atmosphere. End with everyone safe and ready for sleep.',
-    'funny': 'Make the story humorous and playful with silly situations, funny dialogue, and light-hearted moments that will make children giggle. Keep it family-friendly and joyful.',
-    'adventure': 'Create an exciting adventure with challenges to overcome, new places to explore, and brave characters. Include action and discovery while keeping it age-appropriate.',
-    'mystery': 'Build a gentle mystery with clues to discover and a puzzle to solve. Keep it intriguing but not scary, suitable for young children.',
-  }
-  return instructions[tone as keyof typeof instructions] || instructions['bedtime-calm']
 }
 
 export async function POST(req: Request) {
@@ -117,66 +84,67 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { children, config }: { children: ChildData[]; config: StoryConfig } = body
 
-    // Build the prompt
-    let prompt = `Create a ${config.tone} bedtime story that includes the following elements:\n\n`
+    // Map config.length to duration for AI service
+    const durationMap: Record<string, 'short' | 'medium' | 'long'> = {
+      quick: 'short',
+      medium: 'medium',
+      epic: 'long',
+    }
+    const duration = durationMap[config.length] || 'medium'
 
-    // Add character info with pronouns
-    prompt += `Characters:\n`
-    children.forEach((child) => {
-      const pronouns = child.gender === 'girl' ? 'she/her' : child.gender === 'boy' ? 'he/him' : 'they/them'
-      prompt += `- ${child.name} (${pronouns}): ${child.items.join(', ')}\n`
+    // Map tone to mood/theme
+    const moodMap: Record<string, string> = {
+      'bedtime-calm': 'calm and soothing',
+      'funny': 'playful and humorous',
+      'adventure': 'exciting and adventurous',
+      'mystery': 'intriguing and mysterious',
+    }
+    const mood = moodMap[config.tone] || 'calm'
+
+    // Get primary child info for AI service
+    const primaryChild = children[0]
+    const customElements = children.flatMap(c => c.items)
+
+    // Build character description for illustrations
+    const characterDescription = children
+      .map(c => `${c.name} (${c.gender === 'girl' ? 'girl' : c.gender === 'boy' ? 'boy' : 'child'})`)
+      .join(', ')
+
+    // Initialize AI service with user context for tracking
+    const aiService = getAIService({
+      userId: user.id,
+      preferredStoryProvider: 'anthropic', // Claude as primary
+      enableFallback: true,
+      trackUsage: true,
     })
 
-    prompt += `\n${getToneInstructions(config.tone)}\n`
-    prompt += `${getLengthInstructions(config.length)}\n\n`
-    prompt += `The story should:\n`
-    prompt += `- Include ALL the special things naturally in the narrative\n`
-    prompt += `- Feature ${children.map((c) => c.name).join(' and ')} as the main character(s)\n`
-    prompt += `- Use the correct pronouns for each character as specified above\n`
-    prompt += `- Have a clear beginning, middle, and end\n`
-    prompt += `- Be appropriate for children ages 3-10\n`
-    prompt += `- Include dialogue and descriptive language\n`
-    prompt += `- Have a satisfying conclusion\n\n`
-    prompt += `Please provide:\n1. A creative title\n2. The complete story`
-
-    // Generate story with OpenAI
-    const client = getOpenAIClient()
-    const completion = await client.chat.completions.create({
-      model: 'gpt-4-turbo-preview',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are Amari, a magical bedtime storyteller who creates warm, imaginative, and family-friendly stories for children. Your stories are creative, engaging, and always include all the elements requested.',
-        },
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      temperature: 0.9,
-      max_tokens: 2000,
-    })
-
-    const response = completion.choices[0].message.content || ''
-
-    // Parse title and content (simple parsing)
-    const lines = response.split('\n')
-    let title = 'A Magical Story'
-    let content = response
-
-    // Try to extract title if it's in the format "Title: ..." or "# Title"
-    if (lines[0].toLowerCase().startsWith('title:')) {
-      title = lines[0].replace(/^title:\s*/i, '').trim()
-      content = lines.slice(1).join('\n').trim()
-    } else if (lines[0].startsWith('#')) {
-      title = lines[0].replace(/^#+\s*/, '').trim()
-      content = lines.slice(1).join('\n').trim()
+    // Generate story using multi-provider AI service
+    let storyResponse
+    try {
+      storyResponse = await aiService.generateStory({
+        childName: primaryChild.name,
+        childAge: 6, // Default age for now
+        theme: config.tone,
+        mood,
+        duration,
+        customElements,
+        characterDescription,
+      })
+    } catch (aiError) {
+      captureError(aiError as Error, {
+        userId: user.id,
+        action: 'ai_story_generation',
+        metadata: { config, childrenCount: children.length },
+      })
+      throw aiError
     }
 
-    // Count words
+    // Extract title and content from AI response
+    const title = storyResponse.title
+    const content = storyResponse.content
     const wordCount = content.split(/\s+/).length
 
-    // Save story to database
+    // Save story to database with AI provider info
     const { data: story, error } = await supabaseAdmin
       .from('stories')
       .insert({
@@ -186,6 +154,8 @@ export async function POST(req: Request) {
         tone: config.tone,
         length: config.length,
         word_count: wordCount,
+        ai_provider: storyResponse.provider,
+        ai_model: storyResponse.model,
       })
       .select()
       .single()
