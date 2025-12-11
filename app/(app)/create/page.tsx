@@ -4,11 +4,16 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { StoryWizard } from '@/components/story/story-wizard'
 import { StoryDisplay } from '@/components/story/story-display'
+import { NaturalInput } from '@/components/story/natural-input'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Sparkles, BookOpen, Wand2, Stars } from 'lucide-react'
+import { ArrowLeft, Sparkles, BookOpen, Wand2, Stars, MessageSquare, ListChecks } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+
+type InputMode = 'natural' | 'wizard'
 
 interface ChildData {
   name: string
+  gender: 'boy' | 'girl' | 'other'
   itemCount: number
   items: string[]
 }
@@ -16,6 +21,20 @@ interface ChildData {
 interface StoryConfig {
   tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
   length: 'quick' | 'medium' | 'epic'
+  characterIds?: string[]
+}
+
+interface ParsedStoryRequest {
+  childName: string
+  childAge?: number
+  gender?: 'boy' | 'girl' | 'other'
+  theme: string
+  tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
+  length: 'quick' | 'medium' | 'epic'
+  customElements: string[]
+  suggestedCharacters?: Array<{ id: string; name: string }>
+  confidence: number
+  originalInput: string
 }
 
 interface JobStatus {
@@ -36,12 +55,14 @@ const progressMessages = [
 
 export default function CreateStoryPage() {
   const router = useRouter()
+  const [inputMode, setInputMode] = useState<InputMode>('natural')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedStory, setGeneratedStory] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
   const [jobId, setJobId] = useState<string | null>(null)
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
   const [messageIndex, setMessageIndex] = useState(0)
+  const [parsedRequest, setParsedRequest] = useState<ParsedStoryRequest | null>(null)
 
   // Rotate through fun progress messages
   useEffect(() => {
@@ -101,6 +122,25 @@ export default function CreateStoryPage() {
     return () => clearInterval(interval)
   }, [jobId, pollJobStatus])
 
+  // Handle generation from natural language input
+  const handleNaturalGenerate = async (parsed: ParsedStoryRequest) => {
+    // Convert parsed request to children/config format
+    const children: ChildData[] = [{
+      name: parsed.childName,
+      gender: parsed.gender || 'other',
+      itemCount: parsed.customElements.length || 3,
+      items: parsed.customElements.length > 0 ? parsed.customElements : ['magic', 'adventure', 'friendship'],
+    }]
+
+    const config: StoryConfig = {
+      tone: parsed.tone,
+      length: parsed.length,
+      characterIds: parsed.suggestedCharacters?.map(c => c.id),
+    }
+
+    await handleGenerate(children, config)
+  }
+
   const handleGenerate = async (children: ChildData[], config: StoryConfig) => {
     setIsGenerating(true)
     setError(null)
@@ -147,6 +187,7 @@ export default function CreateStoryPage() {
     setError(null)
     setJobId(null)
     setJobStatus(null)
+    setParsedRequest(null)
   }
 
   const CurrentIcon = progressMessages[messageIndex].icon
@@ -159,9 +200,35 @@ export default function CreateStoryPage() {
             <h1 className="text-5xl font-playfair font-bold text-lavender-900 mb-4">
               Create a Magical Story
             </h1>
-            <p className="text-lg text-lavender-600">
+            <p className="text-lg text-lavender-600 mb-6">
               Let's weave imagination into a bedtime adventure
             </p>
+
+            {/* Input Mode Toggle */}
+            <div className="inline-flex items-center p-1 bg-lavender-100 rounded-full">
+              <button
+                onClick={() => setInputMode('natural')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
+                  inputMode === 'natural'
+                    ? 'bg-white shadow-md text-lavender-900'
+                    : 'text-lavender-600 hover:text-lavender-800'
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span className="text-sm font-medium">Just Describe It</span>
+              </button>
+              <button
+                onClick={() => setInputMode('wizard')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
+                  inputMode === 'wizard'
+                    ? 'bg-white shadow-md text-lavender-900'
+                    : 'text-lavender-600 hover:text-lavender-800'
+                }`}
+              >
+                <ListChecks className="h-4 w-4" />
+                <span className="text-sm font-medium">Step-by-Step</span>
+              </button>
+            </div>
           </div>
 
           {error && (
@@ -220,7 +287,31 @@ export default function CreateStoryPage() {
               </div>
             </div>
           ) : (
-            <StoryWizard onGenerate={handleGenerate} isGenerating={isGenerating} />
+            <AnimatePresence mode="wait">
+              {inputMode === 'natural' ? (
+                <motion.div
+                  key="natural"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                >
+                  <NaturalInput
+                    onParsed={setParsedRequest}
+                    onGenerate={handleNaturalGenerate}
+                    isGenerating={isGenerating}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="wizard"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                >
+                  <StoryWizard onGenerate={handleGenerate} isGenerating={isGenerating} />
+                </motion.div>
+              )}
+            </AnimatePresence>
           )}
         </>
       ) : (
