@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { Mic, MicOff, Sparkles, Loader2, Wand2, Square } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Sparkles, Loader2, Wand2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -44,12 +44,8 @@ export function NaturalInput({ onParsed, onGenerate, isGenerating }: NaturalInpu
   const [input, setInput] = useState('')
   const [isParsing, setIsParsing] = useState(false)
   const [parsed, setParsed] = useState<ParsedStoryRequest | null>(null)
-  const [isRecording, setIsRecording] = useState(false)
-  const [isTranscribing, setIsTranscribing] = useState(false)
   const [placeholder, setPlaceholder] = useState(placeholderExamples[0])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const audioChunksRef = useRef<Blob[]>([])
 
   // Rotate placeholder examples
   useEffect(() => {
@@ -101,82 +97,7 @@ export function NaturalInput({ onParsed, onGenerate, isGenerating }: NaturalInpu
     return () => clearTimeout(timeout)
   }, [input, onParsed])
 
-  // Transcribe audio using Whisper API
-  const transcribeAudio = useCallback(async (audioBlob: Blob) => {
-    setIsTranscribing(true)
-    try {
-      const formData = new FormData()
-      formData.append('audio', audioBlob, 'recording.webm')
-
-      const response = await fetch('/api/speech-to-text', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        if (data.text) {
-          setInput(prev => prev ? `${prev} ${data.text}` : data.text)
-        }
-      } else {
-        const error = await response.json()
-        console.error('Transcription error:', error)
-        alert('Failed to transcribe audio. Please try again.')
-      }
-    } catch (error) {
-      console.error('Error transcribing audio:', error)
-      alert('Failed to transcribe audio. Please try again.')
-    } finally {
-      setIsTranscribing(false)
-    }
-  }, [])
-
-  // Start recording audio
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-
-      // Use webm format which Whisper supports well
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm')
-        ? 'audio/webm'
-        : 'audio/mp4'
-
-      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType })
-      audioChunksRef.current = []
-
-      mediaRecorderRef.current.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data)
-        }
-      }
-
-      mediaRecorderRef.current.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType })
-
-        // Stop all tracks to release microphone
-        stream.getTracks().forEach(track => track.stop())
-
-        // Transcribe the audio
-        await transcribeAudio(audioBlob)
-      }
-
-      mediaRecorderRef.current.start()
-      setIsRecording(true)
-    } catch (error) {
-      console.error('Error starting recording:', error)
-      alert('Could not access microphone. Please ensure you have granted permission.')
-    }
-  }
-
-  // Stop recording
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop()
-      setIsRecording(false)
-    }
-  }
-
-  const handleChipClick = (suggestion: string) => {
+const handleChipClick = (suggestion: string) => {
     setInput(suggestion)
     textareaRef.current?.focus()
   }
@@ -208,42 +129,8 @@ export function NaturalInput({ onParsed, onGenerate, isGenerating }: NaturalInpu
           {/* Bottom toolbar */}
           <div className="flex items-center justify-between px-4 py-3 bg-lavender-50 border-t border-lavender-100">
             <div className="flex items-center gap-2">
-              {/* Voice button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={isRecording ? stopRecording : startRecording}
-                disabled={isTranscribing}
-                className={`rounded-full ${isRecording ? 'bg-red-100 text-red-600 hover:bg-red-200 animate-pulse' : 'hover:bg-lavender-100'}`}
-              >
-                {isTranscribing ? (
-                  <>
-                    <Loader2 className="h-5 w-5 mr-1 animate-spin" />
-                    <span className="text-sm">Transcribing...</span>
-                  </>
-                ) : isRecording ? (
-                  <>
-                    <Square className="h-5 w-5 mr-1" />
-                    <span className="text-sm">Stop Recording</span>
-                  </>
-                ) : (
-                  <>
-                    <Mic className="h-5 w-5 mr-1" />
-                    <span className="text-sm">Voice</span>
-                  </>
-                )}
-              </Button>
-
-              {/* Recording indicator */}
-              {isRecording && (
-                <div className="flex items-center text-red-500 text-sm">
-                  <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse" />
-                  Recording...
-                </div>
-              )}
-
               {/* Parsing indicator */}
-              {isParsing && !isRecording && (
+              {isParsing && (
                 <div className="flex items-center text-lavender-500 text-sm">
                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                   Parsing...
