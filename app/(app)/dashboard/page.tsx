@@ -74,46 +74,30 @@ export default function DashboardPage() {
   })
   const [recentStories, setRecentStories] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(true)
 
   useEffect(() => {
     async function loadDashboardData() {
       if (!user) return
 
       try {
-        // Sync user and get stories via API
+        // First, sync user and check subscription status
         await fetch('/api/sync-user', { method: 'POST' })
 
-        // Fetch stories and subscription in parallel
-        const [storiesResponse, subscriptionResponse] = await Promise.all([
-          fetch('/api/stories'),
-          fetch('/api/subscriptions'),
-        ])
-
-        if (storiesResponse.ok) {
-          const data = await storiesResponse.json()
-          const stories = data.stories || []
-          const now = new Date()
-          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-
-          const monthStories = stories.filter((story: any) =>
-            new Date(story.created_at) >= startOfMonth
-          )
-
-          setStats({
-            totalStories: stories.length,
-            thisMonth: monthStories.length,
-          })
-          setRecentStories(stories.slice(0, 3))
-        }
+        // Check subscription FIRST before loading any dashboard data
+        const subscriptionResponse = await fetch('/api/subscriptions')
 
         if (subscriptionResponse.ok) {
           const subData = await subscriptionResponse.json()
 
-          // If user requires subscription (no active plan), redirect to pricing
+          // If user requires subscription (no active plan), redirect to pricing immediately
           if (subData.requiresSubscription) {
-            router.push('/pricing?onboarding=true')
-            return
+            router.replace('/pricing?onboarding=true')
+            return // Don't load anything else
           }
+
+          // User has subscription - now load dashboard data
+          setIsCheckingSubscription(false)
 
           setSubscription({
             tier: subData.tier || 'free',
@@ -127,29 +111,51 @@ export default function DashboardPage() {
             trialEnd: subData.trialEnd || null,
             trialDaysRemaining: subData.trialDaysRemaining || 0,
           })
+
+          // Now load stories
+          const storiesResponse = await fetch('/api/stories')
+          if (storiesResponse.ok) {
+            const data = await storiesResponse.json()
+            const stories = data.stories || []
+            const now = new Date()
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+            const monthStories = stories.filter((story: any) =>
+              new Date(story.created_at) >= startOfMonth
+            )
+
+            setStats({
+              totalStories: stories.length,
+              thisMonth: monthStories.length,
+            })
+            setRecentStories(stories.slice(0, 3))
+          }
         } else {
           // If subscription fetch fails, redirect to pricing
-          router.push('/pricing?onboarding=true')
+          router.replace('/pricing?onboarding=true')
           return
         }
       } catch (error) {
         console.error('Error loading dashboard:', error)
+        // On error, redirect to pricing as a fallback
+        router.replace('/pricing?onboarding=true')
       } finally {
         setLoading(false)
       }
     }
 
     loadDashboardData()
-  }, [user])
+  }, [user, router])
 
-  if (loading) {
+  // Show minimal loading while checking subscription (no dashboard hints)
+  if (isCheckingSubscription || loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-lavender-50 to-white">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-lavender-400 to-skyblue-400 rounded-full flex items-center justify-center butterfly-glow animate-flutter mx-auto mb-4">
-            <span className="text-4xl">🦋</span>
+          <div className="w-20 h-20 bg-gradient-to-br from-lavender-400 to-skyblue-400 rounded-full flex items-center justify-center butterfly-glow animate-flutter mx-auto mb-6">
+            <span className="text-5xl">🦋</span>
           </div>
-          <p className="text-lavender-600">Loading your stories...</p>
+          <p className="text-lavender-600 text-lg">Setting up your experience...</p>
         </div>
       </div>
     )
