@@ -4,38 +4,39 @@ import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Sparkles, BookOpen, Zap, Crown, Star, ArrowRight, Gift, Mic, Clock } from 'lucide-react'
 
-// Subscription tier configuration
+// Subscription tier configuration with Amari colors
 const TIER_CONFIG = {
   free: {
     name: 'Free',
     storiesPerMonth: 3,
     premiumVoices: 0,
-    color: 'lavender',
+    color: 'amari-muted',
     icon: BookOpen,
   },
   dream_weaver: {
     name: 'Dream Weaver',
     storiesPerMonth: 10,
     premiumVoices: 3,
-    color: 'skyblue',
+    color: 'amari-sage',
     icon: Star,
   },
   magic_circle: {
     name: 'Magic Circle',
     storiesPerMonth: 30,
     premiumVoices: 15,
-    color: 'lavender',
+    color: 'amari-terracotta',
     icon: Sparkles,
   },
   enchanted_library: {
     name: 'Enchanted Library',
     storiesPerMonth: 60,
     premiumVoices: 60,
-    color: 'yellow',
+    color: 'amari-rose',
     icon: Crown,
   },
 }
@@ -150,12 +151,16 @@ export default function DashboardPage() {
   // Show minimal loading while checking subscription (no dashboard hints)
   if (isCheckingSubscription || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-lavender-50 to-white">
+      <div className="flex items-center justify-center min-h-screen bg-amari-cream">
         <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-lavender-400 to-skyblue-400 rounded-full flex items-center justify-center butterfly-glow animate-flutter mx-auto mb-6">
-            <span className="text-5xl">🦋</span>
-          </div>
-          <p className="text-lavender-600 text-lg">Setting up your experience...</p>
+          <Image
+            src="/logo.png"
+            alt="Amari"
+            width={160}
+            height={53}
+            className="h-12 w-auto mx-auto mb-6 animate-pulse"
+          />
+          <p className="text-amari-muted text-lg">Setting up your experience...</p>
         </div>
       </div>
     )
@@ -171,10 +176,10 @@ export default function DashboardPage() {
     <div className="max-w-6xl mx-auto space-y-8">
       {/* Welcome Section */}
       <div className="text-center py-8">
-        <h1 className="text-5xl font-playfair font-bold text-lavender-900 mb-4">
-          Welcome back, {user?.firstName || 'Storyteller'}! 🦋
+        <h1 className="text-4xl md:text-5xl font-display font-semibold text-amari-charcoal mb-4">
+          Welcome back, {user?.firstName || 'Storyteller'}!
         </h1>
-        <p className="text-lg text-lavender-600">
+        <p className="text-lg text-amari-muted">
           Ready to create more magical bedtime stories?
         </p>
       </div>
@@ -182,26 +187,26 @@ export default function DashboardPage() {
       {/* Stats Cards */}
       <div className="grid md:grid-cols-4 gap-6">
         {/* Stories This Month - Usage Card */}
-        <Card className="bg-gradient-to-br from-lavender-50 to-skyblue-50 border-lavender-200">
+        <Card className="bg-amari-sage/10">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lavender-600 mb-1">Stories This Month</p>
-                <p className="text-3xl font-bold text-lavender-900">
+                <p className="text-sm text-amari-muted mb-1">Stories This Month</p>
+                <p className="text-3xl font-display font-semibold text-amari-charcoal">
                   {subscription.storiesUsed}
-                  <span className="text-lg font-normal text-lavender-500">/{subscription.storiesLimit}</span>
+                  <span className="text-lg font-normal text-amari-muted">/{subscription.storiesLimit}</span>
                 </p>
               </div>
-              <BookOpen className="h-10 w-10 text-lavender-500" />
+              <BookOpen className="h-10 w-10 text-amari-sage" />
             </div>
             <div className="mt-3">
-              <div className="w-full bg-lavender-200 rounded-full h-2">
+              <div className="w-full bg-amari-sand rounded-full h-2">
                 <div
-                  className="bg-lavender-500 h-2 rounded-full transition-all"
+                  className="bg-amari-sage h-2 rounded-full transition-all"
                   style={{ width: `${Math.min(100, (subscription.storiesUsed / subscription.storiesLimit) * 100)}%` }}
                 />
               </div>
-              <p className="text-xs text-lavender-500 mt-1">{storiesRemaining} stories remaining</p>
+              <p className="text-xs text-amari-muted mt-1">{storiesRemaining} stories remaining</p>
             </div>
           </CardContent>
         </Card>
@@ -210,10 +215,10 @@ export default function DashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lavender-600 mb-1">Total Stories</p>
-                <p className="text-3xl font-bold text-lavender-900">{stats.totalStories}</p>
+                <p className="text-sm text-amari-muted mb-1">Total Stories</p>
+                <p className="text-3xl font-display font-semibold text-amari-charcoal">{stats.totalStories}</p>
               </div>
-              <BookOpen className="h-10 w-10 text-lavender-400" />
+              <BookOpen className="h-10 w-10 text-amari-muted" />
             </div>
           </CardContent>
         </Card>
@@ -222,27 +227,27 @@ export default function DashboardPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lavender-600 mb-1">Premium Voices</p>
-                <p className="text-3xl font-bold text-lavender-900">
+                <p className="text-sm text-amari-muted mb-1">Premium Voices</p>
+                <p className="text-3xl font-display font-semibold text-amari-charcoal">
                   {subscription.premiumVoicesUsed}
-                  <span className="text-lg font-normal text-lavender-500">/{subscription.premiumVoicesLimit}</span>
+                  <span className="text-lg font-normal text-amari-muted">/{subscription.premiumVoicesLimit}</span>
                 </p>
               </div>
-              <Mic className="h-10 w-10 text-skyblue-400" />
+              <Mic className="h-10 w-10 text-amari-terracotta" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className={subscription.tier !== 'free' ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50' : ''}>
+        <Card className={subscription.tier !== 'free' ? 'bg-amari-rose/20' : ''}>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-lavender-600 mb-1">Your Plan</p>
-                <p className="text-2xl font-bold text-lavender-900">
+                <p className="text-sm text-amari-muted mb-1">Your Plan</p>
+                <p className="text-2xl font-display font-semibold text-amari-charcoal">
                   {tierConfig.name}
                 </p>
               </div>
-              <TierIcon className={`h-10 w-10 ${subscription.tier !== 'free' ? 'text-yellow-500' : 'text-lavender-400'}`} />
+              <TierIcon className={`h-10 w-10 ${subscription.tier !== 'free' ? 'text-amari-terracotta' : 'text-amari-muted'}`} />
             </div>
             {subscription.tier === 'free' && (
               <Link href="/pricing">
@@ -257,18 +262,18 @@ export default function DashboardPage() {
 
       {/* Trial Status Banner */}
       {subscription.isOnTrial && (
-        <Card className="bg-gradient-to-r from-lavender-100 to-skyblue-100 border-lavender-300">
+        <Card className="bg-amari-sage/10 border-amari-sage/30">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="p-3 bg-white rounded-full">
-                  <Clock className="h-8 w-8 text-lavender-600" />
+                  <Clock className="h-8 w-8 text-amari-sage" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-playfair font-bold text-lavender-900">
+                  <h3 className="text-xl font-display font-semibold text-amari-charcoal">
                     {subscription.trialDaysRemaining} days left in your free trial
                   </h3>
-                  <p className="text-lavender-700">
+                  <p className="text-amari-muted">
                     You're enjoying {tierConfig.name} features. Your trial ends{' '}
                     {subscription.trialEnd
                       ? new Date(subscription.trialEnd).toLocaleDateString('en-US', {
@@ -282,7 +287,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <Link href="/settings/subscription">
-                <Button variant="outline" className="border-lavender-400 hover:bg-lavender-50">
+                <Button variant="outline">
                   Manage Subscription
                 </Button>
               </Link>
@@ -293,44 +298,44 @@ export default function DashboardPage() {
 
       {/* Low Stories Warning / Upgrade Banner */}
       {isLowOnStories && !subscription.isOnTrial && (
-        <Card className="bg-gradient-to-r from-lavender-500 to-skyblue-500 text-white border-none">
+        <Card className="bg-amari-terracotta text-white border-none">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-playfair font-bold mb-2">
+                <h3 className="text-2xl font-display font-semibold mb-2">
                   {storiesRemaining === 0 ? "You've Used All Your Stories!" : "Running Low on Stories"}
                 </h3>
-                <p className="text-lavender-50 mb-4">
+                <p className="text-white/80 mb-4">
                   {storiesRemaining === 0
                     ? "Upgrade your plan to continue creating magical bedtime stories."
                     : `You have ${storiesRemaining} ${storiesRemaining === 1 ? 'story' : 'stories'} remaining this month. Upgrade for more!`
                   }
                 </p>
                 <Link href="/pricing">
-                  <Button variant="secondary" size="lg">
+                  <Button className="bg-white text-amari-terracotta hover:bg-white/90">
                     View Plans <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
               </div>
-              <div className="text-6xl animate-flutter">🦋</div>
+              <Sparkles className="h-16 w-16 text-white/30" />
             </div>
           </CardContent>
         </Card>
       )}
 
       {/* Gift Banner - Show for all users */}
-      <Card className="bg-gradient-to-r from-peach-100 to-mint-100 border-peach-200">
+      <Card className="bg-amari-rose/20 border-amari-rose/30">
         <CardContent className="py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Gift className="h-10 w-10 text-peach-600" />
+              <Gift className="h-10 w-10 text-amari-terracotta" />
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Give the Gift of Stories</h3>
-                <p className="text-gray-600">Perfect for grandparents, aunts, uncles & friends!</p>
+                <h3 className="text-lg font-display font-semibold text-amari-charcoal">Give the Gift of Stories</h3>
+                <p className="text-amari-muted">Perfect for grandparents, aunts, uncles & friends!</p>
               </div>
             </div>
             <Link href="/gifts">
-              <Button variant="outline" className="border-peach-300 hover:bg-peach-50">
+              <Button variant="outline">
                 Shop Gifts <Gift className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -340,28 +345,28 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="hover:shadow-xl transition-shadow cursor-pointer">
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
           <Link href="/create">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-6 w-6 text-lavender-600" />
+              <CardTitle className="flex items-center gap-2 text-amari-charcoal">
+                <Sparkles className="h-6 w-6 text-amari-terracotta" />
                 Create New Story
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-amari-muted">
                 Start a magical bedtime adventure
               </CardDescription>
             </CardHeader>
           </Link>
         </Card>
 
-        <Card className="hover:shadow-xl transition-shadow cursor-pointer">
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer">
           <Link href="/stories">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-6 w-6 text-skyblue-600" />
+              <CardTitle className="flex items-center gap-2 text-amari-charcoal">
+                <BookOpen className="h-6 w-6 text-amari-sage" />
                 My Stories
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-amari-muted">
                 View and replay your saved stories
               </CardDescription>
             </CardHeader>
@@ -372,26 +377,26 @@ export default function DashboardPage() {
       {/* Recent Stories */}
       {recentStories.length > 0 && (
         <div>
-          <h2 className="text-3xl font-playfair font-bold text-lavender-900 mb-6">
+          <h2 className="text-3xl font-display font-semibold text-amari-charcoal mb-6">
             Recent Stories
           </h2>
           <div className="grid md:grid-cols-3 gap-6">
             {recentStories.map((story) => (
               <Link key={story.id} href={`/stories/${story.id}`}>
-                <Card className="hover:shadow-xl transition-all hover:scale-105 cursor-pointer">
+                <Card className="hover:shadow-lg transition-all cursor-pointer">
                   <CardHeader>
                     <div className="flex items-start justify-between mb-2">
                       <span className="text-2xl">
                         {story.tone === 'bedtime-calm' ? '🌙' : story.tone === 'funny' ? '😄' : story.tone === 'adventure' ? '🗺️' : '🔍'}
                       </span>
-                      <span className="text-xs text-lavender-600">
+                      <span className="text-xs text-amari-muted">
                         {new Date(story.created_at).toLocaleDateString()}
                       </span>
                     </div>
-                    <CardTitle className="text-lg line-clamp-2">
+                    <CardTitle className="text-lg line-clamp-2 text-amari-charcoal">
                       {story.title}
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-amari-muted">
                       {story.word_count} words • {Math.ceil(story.word_count / 150)} min read
                     </CardDescription>
                   </CardHeader>
@@ -407,10 +412,10 @@ export default function DashboardPage() {
         <Card className="text-center py-12">
           <CardContent>
             <div className="text-6xl mb-4">📚</div>
-            <h3 className="text-2xl font-playfair font-bold text-lavender-900 mb-2">
+            <h3 className="text-2xl font-display font-semibold text-amari-charcoal mb-2">
               No Stories Yet
             </h3>
-            <p className="text-lavender-600 mb-6">
+            <p className="text-amari-muted mb-6">
               Create your first magical bedtime story!
             </p>
             <Link href="/create">

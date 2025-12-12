@@ -22,10 +22,10 @@ import {
 } from 'lucide-react'
 
 const TIER_CONFIG = {
-  free: { name: 'Free', icon: BookOpen, color: 'gray' },
-  dream_weaver: { name: 'Dream Weaver', icon: Star, color: 'skyblue' },
-  magic_circle: { name: 'Magic Circle', icon: Sparkles, color: 'lavender' },
-  enchanted_library: { name: 'Enchanted Library', icon: Crown, color: 'yellow' },
+  free: { name: 'Free', icon: BookOpen, color: 'amari-muted' },
+  dream_weaver: { name: 'Dream Weaver', icon: Star, color: 'amari-sage' },
+  magic_circle: { name: 'Magic Circle', icon: Sparkles, color: 'amari-terracotta' },
+  enchanted_library: { name: 'Enchanted Library', icon: Crown, color: 'amari-rose' },
 }
 
 interface SubscriptionData {
@@ -89,7 +89,7 @@ export default function SubscriptionSettingsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-lavender-600" />
+        <Loader2 className="h-8 w-8 animate-spin text-amari-terracotta" />
       </div>
     )
   }
@@ -97,7 +97,7 @@ export default function SubscriptionSettingsPage() {
   if (!subscription) {
     return (
       <div className="max-w-2xl mx-auto text-center py-12">
-        <p className="text-gray-600 mb-4">Unable to load subscription information.</p>
+        <p className="text-amari-muted mb-4">Unable to load subscription information.</p>
         <Link href="/pricing">
           <Button>View Plans</Button>
         </Link>
@@ -114,27 +114,27 @@ export default function SubscriptionSettingsPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div>
-        <h1 className="text-3xl font-playfair font-bold text-lavender-900 mb-2">
+        <h1 className="text-3xl font-display font-semibold text-amari-charcoal mb-2">
           Subscription Settings
         </h1>
-        <p className="text-lavender-600">
+        <p className="text-amari-muted">
           Manage your Amari subscription and billing
         </p>
       </div>
 
       {/* Trial Status Banner */}
       {isOnTrial && (
-        <Card className="bg-gradient-to-r from-lavender-100 to-skyblue-100 border-lavender-300">
+        <Card className="bg-amari-sage/10 border-amari-sage/30">
           <CardContent className="py-6">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-white rounded-full">
-                <Clock className="h-8 w-8 text-lavender-600" />
+                <Clock className="h-8 w-8 text-amari-sage" />
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-semibold text-lavender-900">
+                <h3 className="text-xl font-display font-semibold text-amari-charcoal">
                   {trialDaysRemaining} days left in your free trial
                 </h3>
-                <p className="text-lavender-700">
+                <p className="text-amari-muted">
                   Your trial ends{' '}
                   {subscription.trialEnd
                     ? new Date(subscription.trialEnd).toLocaleDateString('en-US', {
@@ -148,7 +148,7 @@ export default function SubscriptionSettingsPage() {
               </div>
             </div>
             {trialDaysRemaining <= 3 && (
-              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+              <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
                 <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
                 <div className="text-sm text-amber-800">
                   <strong>Your trial is ending soon!</strong> After your trial ends, you'll be charged for the{' '}
@@ -162,16 +162,16 @@ export default function SubscriptionSettingsPage() {
       )}
 
       {/* Current Plan */}
-      <Card className={isPaid && !isOnTrial ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-amber-50' : isOnTrial ? 'border-lavender-300' : ''}>
+      <Card className={isPaid && !isOnTrial ? 'bg-amari-rose/10' : isOnTrial ? 'border-amari-sage/30' : ''}>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-full ${isPaid ? 'bg-yellow-100' : 'bg-gray-100'}`}>
-                <TierIcon className={`h-6 w-6 ${isPaid ? 'text-yellow-600' : 'text-gray-600'}`} />
+              <div className={`p-3 rounded-full ${isPaid ? 'bg-amari-terracotta/10' : 'bg-amari-sand'}`}>
+                <TierIcon className={`h-6 w-6 ${isPaid ? 'text-amari-terracotta' : 'text-amari-muted'}`} />
               </div>
               <div>
-                <CardTitle className="text-xl">{tierConfig.name}</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl text-amari-charcoal">{tierConfig.name}</CardTitle>
+                <CardDescription className="text-amari-muted">
                   {isOnTrial
                     ? '14-day free trial'
                     : isPaid
@@ -180,7 +180,7 @@ export default function SubscriptionSettingsPage() {
                 </CardDescription>
               </div>
             </div>
-            <Badge variant={isOnTrial ? 'outline' : subscription.status === 'active' ? 'default' : 'secondary'} className={isOnTrial ? 'border-lavender-400 text-lavender-700' : ''}>
+            <Badge variant={isOnTrial ? 'outline' : subscription.status === 'active' ? 'default' : 'secondary'}>
               {isOnTrial ? 'Trial' : subscription.status === 'active' ? 'Active' : subscription.status}
             </Badge>
           </div>
@@ -188,20 +188,20 @@ export default function SubscriptionSettingsPage() {
         <CardContent className="space-y-4">
           {/* Usage Stats */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg bg-white/50">
-              <p className="text-sm text-gray-600 mb-1">Stories This Month</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="p-4 rounded-xl bg-white border border-amari-sand">
+              <p className="text-sm text-amari-muted mb-1">Stories This Month</p>
+              <p className="text-2xl font-display font-semibold text-amari-charcoal">
                 {subscription.storiesUsed}
-                <span className="text-lg font-normal text-gray-500">
+                <span className="text-lg font-normal text-amari-muted">
                   /{subscription.limits.storiesPerMonth}
                 </span>
               </p>
             </div>
-            <div className="p-4 rounded-lg bg-white/50">
-              <p className="text-sm text-gray-600 mb-1">Premium Voices</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="p-4 rounded-xl bg-white border border-amari-sand">
+              <p className="text-sm text-amari-muted mb-1">Premium Voices</p>
+              <p className="text-2xl font-display font-semibold text-amari-charcoal">
                 {subscription.premiumVoicesUsed}
-                <span className="text-lg font-normal text-gray-500">
+                <span className="text-lg font-normal text-amari-muted">
                   /{subscription.limits.premiumVoicesPerMonth}
                 </span>
               </p>
@@ -210,7 +210,7 @@ export default function SubscriptionSettingsPage() {
 
           {/* Renewal Info */}
           {isPaid && subscription.currentPeriodEnd && !isOnTrial && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2 text-sm text-amari-muted">
               <Calendar className="h-4 w-4" />
               {subscription.cancelAtPeriodEnd ? (
                 <span>Cancels on {new Date(subscription.currentPeriodEnd).toLocaleDateString()}</span>
@@ -222,7 +222,7 @@ export default function SubscriptionSettingsPage() {
 
           {/* Trial billing info */}
           {isOnTrial && (
-            <div className="flex items-center gap-2 text-sm text-lavender-600">
+            <div className="flex items-center gap-2 text-sm text-amari-sage">
               <CreditCard className="h-4 w-4" />
               <span>
                 First charge on{' '}
@@ -267,58 +267,58 @@ export default function SubscriptionSettingsPage() {
       {/* Plan Features */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Check className="h-5 w-5 text-green-500" />
+          <CardTitle className="flex items-center gap-2 text-amari-charcoal">
+            <Check className="h-5 w-5 text-amari-sage" />
             Your Plan Includes
           </CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="grid md:grid-cols-2 gap-3">
             <li className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-green-500" />
-              <span>{subscription.limits.storiesPerMonth} stories per month</span>
+              <Check className="h-4 w-4 text-amari-sage" />
+              <span className="text-amari-charcoal">{subscription.limits.storiesPerMonth} stories per month</span>
             </li>
             <li className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-green-500" />
-              <span>{subscription.limits.premiumVoicesPerMonth} premium voice narrations</span>
+              <Check className="h-4 w-4 text-amari-sage" />
+              <span className="text-amari-charcoal">{subscription.limits.premiumVoicesPerMonth} premium voice narrations</span>
             </li>
             {subscription.tier !== 'free' && (
               <>
                 <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>Unlimited saved stories</span>
+                  <Check className="h-4 w-4 text-amari-sage" />
+                  <span className="text-amari-charcoal">Unlimited saved stories</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>Story downloads</span>
+                  <Check className="h-4 w-4 text-amari-sage" />
+                  <span className="text-amari-charcoal">Story downloads</span>
                 </li>
               </>
             )}
             {subscription.tier === 'magic_circle' && (
               <>
                 <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>Family sharing (2 accounts)</span>
+                  <Check className="h-4 w-4 text-amari-sage" />
+                  <span className="text-amari-charcoal">Family sharing (2 accounts)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>Premium themes</span>
+                  <Check className="h-4 w-4 text-amari-sage" />
+                  <span className="text-amari-charcoal">Premium themes</span>
                 </li>
               </>
             )}
             {subscription.tier === 'enchanted_library' && (
               <>
                 <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>Family sharing (4 accounts)</span>
+                  <Check className="h-4 w-4 text-amari-sage" />
+                  <span className="text-amari-charcoal">Family sharing (4 accounts)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>Priority support</span>
+                  <Check className="h-4 w-4 text-amari-sage" />
+                  <span className="text-amari-charcoal">Priority support</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-green-500" />
-                  <span>1 free gift subscription per year</span>
+                  <Check className="h-4 w-4 text-amari-sage" />
+                  <span className="text-amari-charcoal">1 free gift subscription per year</span>
                 </li>
               </>
             )}
@@ -327,18 +327,18 @@ export default function SubscriptionSettingsPage() {
       </Card>
 
       {/* Gift Section */}
-      <Card className="bg-gradient-to-r from-peach-50 to-mint-50 border-peach-200">
+      <Card className="bg-amari-rose/20 border-amari-rose/30">
         <CardContent className="py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Gift className="h-10 w-10 text-peach-600" />
+              <Gift className="h-10 w-10 text-amari-terracotta" />
               <div>
-                <h3 className="font-semibold text-gray-900">Gift Amari to Someone Special</h3>
-                <p className="text-gray-600">Share the magic of bedtime stories</p>
+                <h3 className="font-display font-semibold text-amari-charcoal">Gift Amari to Someone Special</h3>
+                <p className="text-amari-muted">Share the magic of bedtime stories</p>
               </div>
             </div>
             <Link href="/gifts">
-              <Button variant="outline" className="border-peach-300">
+              <Button variant="outline">
                 Shop Gifts
               </Button>
             </Link>
@@ -351,8 +351,8 @@ export default function SubscriptionSettingsPage() {
         <CardContent className="py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-gray-900">Have a Gift Code?</h3>
-              <p className="text-gray-600">Redeem your gift subscription</p>
+              <h3 className="font-display font-semibold text-amari-charcoal">Have a Gift Code?</h3>
+              <p className="text-amari-muted">Redeem your gift subscription</p>
             </div>
             <Link href="/gifts/redeem">
               <Button variant="outline">

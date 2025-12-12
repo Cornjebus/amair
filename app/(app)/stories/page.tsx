@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useUser } from '@clerk/nextjs'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -64,10 +65,14 @@ export default function StoriesPage() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-lavender-400 to-skyblue-400 rounded-full flex items-center justify-center butterfly-glow animate-flutter mx-auto mb-4">
-            <span className="text-4xl">🦋</span>
-          </div>
-          <p className="text-lavender-600">Loading your stories...</p>
+          <Image
+            src="/logo.png"
+            alt="Amari"
+            width={120}
+            height={40}
+            className="h-10 w-auto mx-auto mb-4 animate-pulse"
+          />
+          <p className="text-amari-muted">Loading your stories...</p>
         </div>
       </div>
     )
@@ -77,10 +82,10 @@ export default function StoriesPage() {
     <div className="max-w-6xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-5xl font-playfair font-bold text-lavender-900 mb-2">
+          <h1 className="text-4xl md:text-5xl font-display font-semibold text-amari-charcoal mb-2">
             My Stories
           </h1>
-          <p className="text-lg text-lavender-600">
+          <p className="text-lg text-amari-muted">
             {stories.length} magical {stories.length === 1 ? 'story' : 'stories'} created
           </p>
         </div>
@@ -96,7 +101,7 @@ export default function StoriesPage() {
       {stories.length > 0 && (
         <div className="flex gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-lavender-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-amari-muted" />
             <Input
               placeholder="Search stories..."
               value={searchQuery}
@@ -144,26 +149,26 @@ export default function StoriesPage() {
         <div className="grid md:grid-cols-3 gap-6">
           {filteredStories.map((story) => (
             <Link key={story.id} href={`/stories/${story.id}`}>
-              <Card className="hover:shadow-xl transition-all hover:scale-105 cursor-pointer h-full">
+              <Card className="hover:shadow-lg transition-all cursor-pointer h-full">
                 <CardHeader>
                   <div className="flex items-start justify-between mb-2">
                     <span className="text-3xl">
                       {story.tone === 'bedtime-calm' ? '🌙' : story.tone === 'funny' ? '😄' : story.tone === 'adventure' ? '🗺️' : '🔍'}
                     </span>
                     <div className="text-right">
-                      <div className="text-xs text-lavender-600">
+                      <div className="text-xs text-amari-muted">
                         {new Date(story.created_at).toLocaleDateString()}
                       </div>
                       {story.is_favorite && <span className="text-lg">❤️</span>}
                     </div>
                   </div>
-                  <CardTitle className="text-xl line-clamp-2">
+                  <CardTitle className="text-xl line-clamp-2 text-amari-charcoal">
                     {story.title}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-amari-muted">
                     {story.word_count} words • {Math.ceil(story.word_count / 150)} min read
                   </CardDescription>
-                  <div className="pt-4 text-sm text-lavender-700 line-clamp-3">
+                  <div className="pt-4 text-sm text-amari-muted line-clamp-3">
                     {story.content.substring(0, 150)}...
                   </div>
                 </CardHeader>
@@ -175,10 +180,10 @@ export default function StoriesPage() {
         <Card className="text-center py-12">
           <CardContent>
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-2xl font-playfair font-bold text-lavender-900 mb-2">
+            <h3 className="text-2xl font-display font-semibold text-amari-charcoal mb-2">
               No Stories Found
             </h3>
-            <p className="text-lavender-600">
+            <p className="text-amari-muted">
               Try adjusting your search or filters
             </p>
           </CardContent>
@@ -187,10 +192,10 @@ export default function StoriesPage() {
         <Card className="text-center py-12">
           <CardContent>
             <div className="text-6xl mb-4">📚</div>
-            <h3 className="text-2xl font-playfair font-bold text-lavender-900 mb-2">
+            <h3 className="text-2xl font-display font-semibold text-amari-charcoal mb-2">
               No Stories Yet
             </h3>
-            <p className="text-lavender-600 mb-6">
+            <p className="text-amari-muted mb-6">
               Create your first magical bedtime story!
             </p>
             <Link href="/create">
