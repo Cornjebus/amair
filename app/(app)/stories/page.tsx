@@ -66,7 +66,7 @@ export default function StoriesPage() {
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
           <Image
-            src="/logo.svg"
+            src="/logo.png"
             alt="Amari"
             width={120}
             height={40}

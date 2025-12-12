@@ -12,7 +12,7 @@ export default function HomePage() {
         <div className="container flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center space-x-3">
             <Image
-              src="/logo.svg"
+              src="/logo.png"
               alt="Amari"
               width={120}
               height={40}
@@ -192,7 +192,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-3">
             <Image
-              src="/logo.svg"
+              src="/logo.png"
               alt="Amari"
               width={80}
               height={28}

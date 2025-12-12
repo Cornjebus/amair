@@ -59,7 +59,7 @@ export default function AppLayout({
         <div className="container flex h-16 items-center justify-between px-4">
           <Link href="/dashboard" className="flex items-center space-x-3">
             <Image
-              src="/logo.svg"
+              src="/logo.png"
               alt="Amari"
               width={120}
               height={40}
