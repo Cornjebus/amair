@@ -154,7 +154,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center min-h-screen bg-amari-cream">
         <div className="text-center">
           <Image
-            src="/logo.png"
+            src="/logo.svg"
             alt="Amari"
             width={160}
             height={53}

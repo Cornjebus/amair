@@ -183,7 +183,7 @@ export default function RedeemGiftPage() {
         <div className="container flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center space-x-3">
             <Image
-              src="/logo.png"
+              src="/logo.svg"
               alt="Amari"
               width={120}
               height={40}
