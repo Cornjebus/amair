@@ -8,7 +8,8 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'amari-card p-6',
+      // NEW AMARI STYLE: Clean, no glass morphism, subtle border
+      'bg-white dark:bg-amari-surface rounded-2xl border border-amari-sand dark:border-amari-sand p-6',
       className
     )}
     {...props}
@@ -35,7 +36,8 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      'text-2xl font-playfair font-semibold leading-none tracking-tight text-lavender-900',
+      // NEW: Use display font (Fraunces), charcoal text
+      'text-2xl font-display font-semibold leading-none tracking-tight text-amari-charcoal dark:text-amari-cream',
       className
     )}
     {...props}
@@ -49,7 +51,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-lavender-600', className)}
+    className={cn('text-sm text-amari-muted', className)}
     {...props}
   />
 ))

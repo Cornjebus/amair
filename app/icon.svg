@@ -1,14 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <defs>
-    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ec4899;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <circle cx="50" cy="50" r="45" fill="url(#gradient)" />
-  <path d="M 35 40 Q 50 20 65 40" stroke="white" stroke-width="3" fill="none" />
-  <circle cx="40" cy="45" r="3" fill="white" />
-  <circle cx="60" cy="45" r="3" fill="white" />
-  <path d="M 35 65 Q 50 75 65 65" stroke="white" stroke-width="3" fill="none" />
-  <path d="M 25 35 L 30 30 M 75 35 L 70 30" stroke="white" stroke-width="2" fill="none" />
+  <!-- Background circle with cream -->
+  <circle cx="50" cy="50" r="48" fill="#FAF7F2"/>
+
+  <!-- Stylized "A" with butterfly wings -->
+  <!-- Left wing -->
+  <path d="M 30 35 Q 20 25 25 40 Q 20 55 35 50"
+        fill="none"
+        stroke="#E07A5F"
+        stroke-width="3.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- Right wing -->
+  <path d="M 70 35 Q 80 25 75 40 Q 80 55 65 50"
+        fill="none"
+        stroke="#E07A5F"
+        stroke-width="3.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+
+  <!-- Letter A -->
+  <text x="50" y="72"
+        font-family="Georgia, serif"
+        font-size="50"
+        font-weight="600"
+        fill="#2D3436"
+        text-anchor="middle">a</text>
 </svg>

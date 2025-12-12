@@ -1,3 +1,12 @@
+/* ===========================================
+   AMARI DESIGN SYSTEM
+   Cozy Modern - Inspired by Lovevery
+   =========================================== */
+
+/* Google Fonts - New Brand Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+/* Legacy font - keeping during migration */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
 
 @tailwind base;
@@ -6,50 +15,80 @@
 
 @layer base {
   :root {
-    --background: 42 100% 98%;
-    --foreground: 270 60% 20%;
-    --card: 0 0% 100%;
-    --card-foreground: 270 60% 20%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 270 60% 20%;
-    --primary: 270 70% 65%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 200 80% 60%;
-    --secondary-foreground: 270 60% 20%;
-    --muted: 270 20% 95%;
-    --muted-foreground: 270 30% 45%;
-    --accent: 270 50% 90%;
-    --accent-foreground: 270 60% 30%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 270 30% 88%;
-    --input: 270 30% 88%;
-    --ring: 270 70% 65%;
-    --radius: 1rem;
+    /* ===========================================
+       NEW AMARI BRAND TOKENS (Light Mode)
+       =========================================== */
+    --amari-charcoal: #2D3436;
+    --amari-terracotta: #E07A5F;
+    --amari-sage: #81B29A;
+    --amari-cream: #FAF7F2;
+    --amari-white: #FFFFFF;
+    --amari-muted: #9A8C7D;
+    --amari-rose: #D4A5A5;
+    --amari-sand: #E8E2D9;
 
+    /* Font Variables */
+    --font-fraunces: 'Fraunces', serif;
+    --font-dm-sans: 'DM Sans', sans-serif;
     --font-playfair: 'Playfair Display', serif;
+
+    /* ===========================================
+       SHADCN THEME TOKENS (Updated for Amari)
+       =========================================== */
+    --background: 40 33% 97%;           /* Warm cream */
+    --foreground: 195 12% 19%;          /* Charcoal */
+    --card: 0 0% 100%;                  /* White */
+    --card-foreground: 195 12% 19%;    /* Charcoal */
+    --popover: 0 0% 100%;
+    --popover-foreground: 195 12% 19%;
+    --primary: 11 65% 63%;              /* Terracotta */
+    --primary-foreground: 0 0% 100%;   /* White */
+    --secondary: 150 30% 56%;           /* Sage */
+    --secondary-foreground: 195 12% 19%;
+    --muted: 32 18% 55%;                /* Muted warm gray */
+    --muted-foreground: 32 18% 45%;
+    --accent: 0 23% 74%;                /* Rose */
+    --accent-foreground: 195 12% 19%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 35 18% 88%;               /* Sand */
+    --input: 35 18% 88%;
+    --ring: 11 65% 63%;                 /* Terracotta */
+    --radius: 1rem;
   }
 
+  /* ===========================================
+     DARK MODE (Intentionally Designed)
+     =========================================== */
   .dark {
-    --background: 270 50% 8%;
-    --foreground: 270 30% 95%;
-    --card: 270 50% 10%;
-    --card-foreground: 270 30% 95%;
-    --popover: 270 50% 10%;
-    --popover-foreground: 270 30% 95%;
-    --primary: 270 70% 65%;
+    --amari-charcoal: #F5F0E8;          /* Flip to light text */
+    --amari-terracotta: #E8907A;        /* Slightly lighter terracotta */
+    --amari-sage: #95C4AC;              /* Slightly lighter sage */
+    --amari-cream: #1A1D1E;             /* Deep night background */
+    --amari-white: #252829;             /* Dark surface */
+    --amari-muted: #A89F94;             /* Lighter muted */
+    --amari-rose: #C9A3A3;              /* Muted rose */
+    --amari-sand: #3D3A36;              /* Dark sand */
+
+    --background: 195 10% 11%;          /* Deep night */
+    --foreground: 35 33% 94%;           /* Warm ivory */
+    --card: 195 8% 15%;                 /* Dark surface */
+    --card-foreground: 35 33% 94%;
+    --popover: 195 8% 15%;
+    --popover-foreground: 35 33% 94%;
+    --primary: 11 60% 65%;              /* Warm terracotta */
     --primary-foreground: 0 0% 100%;
-    --secondary: 200 70% 50%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 270 30% 20%;
-    --muted-foreground: 270 20% 65%;
-    --accent: 270 40% 20%;
-    --accent-foreground: 270 30% 95%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 270 30% 95%;
-    --border: 270 30% 25%;
-    --input: 270 30% 25%;
-    --ring: 270 70% 65%;
+    --secondary: 150 28% 53%;           /* Soft sage */
+    --secondary-foreground: 35 33% 94%;
+    --muted: 32 12% 25%;
+    --muted-foreground: 32 18% 65%;
+    --accent: 0 18% 45%;
+    --accent-foreground: 35 33% 94%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 35 10% 22%;               /* Dark sand */
+    --input: 35 10% 22%;
+    --ring: 11 60% 65%;
   }
 }
 
@@ -57,17 +96,92 @@
   * {
     @apply border-border;
   }
+
+  /* Body - New Amari styling */
   body {
-    @apply bg-gradient-to-br from-lavender-50 via-skyblue-50 to-cream-50 text-foreground;
+    @apply bg-amari-cream text-amari-charcoal;
+    font-family: var(--font-dm-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* Dark mode body */
+  .dark body {
+    @apply bg-amari-night text-amari-cream;
+  }
+
+  /* Headings - Use display font */
   h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-playfair);
+    font-family: var(--font-fraunces);
+    font-weight: 600;
+    color: var(--amari-charcoal);
+  }
+
+  .dark h1, .dark h2, .dark h3, .dark h4, .dark h5, .dark h6 {
+    color: var(--amari-cream);
   }
 }
 
+/* ===========================================
+   NEW AMARI UTILITY CLASSES
+   =========================================== */
 @layer utilities {
+  /* Typography */
+  .font-display {
+    font-family: var(--font-fraunces);
+  }
+
+  .font-body {
+    font-family: var(--font-dm-sans);
+  }
+
+  /* Cards - New clean style */
+  .amari-card-new {
+    @apply bg-white rounded-2xl border border-amari-sand;
+  }
+
+  .dark .amari-card-new {
+    @apply bg-amari-surface border-amari-sand;
+  }
+
+  /* Buttons - New style (no scale, subtle transitions) */
+  .amari-btn-primary {
+    @apply bg-amari-terracotta text-white rounded-xl px-6 py-3 font-medium;
+    @apply transition-colors duration-200;
+    @apply hover:bg-[#C96A4F] active:bg-[#B85A3F];
+  }
+
+  .amari-btn-secondary {
+    @apply bg-transparent text-amari-charcoal rounded-xl px-6 py-3 font-medium;
+    @apply border border-amari-sand;
+    @apply transition-colors duration-200;
+    @apply hover:bg-amari-sand/50;
+  }
+
+  .dark .amari-btn-secondary {
+    @apply text-amari-cream border-amari-sand hover:bg-amari-sand/20;
+  }
+
+  .amari-btn-ghost {
+    @apply bg-transparent text-amari-charcoal rounded-xl px-6 py-3 font-medium;
+    @apply transition-colors duration-200;
+    @apply hover:bg-amari-sand/30;
+  }
+
+  /* Inputs - New style */
+  .amari-input-new {
+    @apply bg-white rounded-xl border border-amari-sand px-4 py-3;
+    @apply transition-all duration-200;
+    @apply focus:border-amari-terracotta focus:ring-2 focus:ring-amari-terracotta/20;
+    @apply placeholder:text-amari-muted;
+  }
+
+  .dark .amari-input-new {
+    @apply bg-amari-surface border-amari-sand;
+  }
+
+  /* ===========================================
+     LEGACY UTILITIES (keeping for migration)
+     =========================================== */
   .amari-card {
     @apply bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg shadow-lavender-200/50 border border-lavender-100;
   }
@@ -81,6 +195,6 @@
   }
 
   .butterfly-glow {
-    filter: drop-shadow(0 0 20px rgba(168, 85, 247, 0.4));
+    filter: drop-shadow(0 0 20px rgba(224, 122, 95, 0.4)); /* Updated to terracotta */
   }
 }

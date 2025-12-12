@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Gift,
   Star,
@@ -14,6 +15,10 @@ import {
   ArrowRight,
   Check,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface GiftPackage {
   id: string;
@@ -25,20 +30,20 @@ interface GiftPackage {
   description: string;
 }
 
-const tierColors: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
+const tierConfig: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
   dream_weaver: {
-    bg: 'bg-blue-50',
-    text: 'text-blue-600',
+    bg: 'bg-amari-sage/10',
+    text: 'text-amari-sage',
     icon: <Star className="h-5 w-5" />,
   },
   magic_circle: {
-    bg: 'bg-purple-50',
-    text: 'text-purple-600',
+    bg: 'bg-amari-terracotta/10',
+    text: 'text-amari-terracotta',
     icon: <Sparkles className="h-5 w-5" />,
   },
   enchanted_library: {
-    bg: 'bg-amber-50',
-    text: 'text-amber-600',
+    bg: 'bg-amari-rose/30',
+    text: 'text-amari-charcoal',
     icon: <Crown className="h-5 w-5" />,
   },
 };
@@ -140,34 +145,40 @@ export default function GiftsPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-peach-50 via-white to-mint-50">
+    <div className="min-h-screen bg-amari-cream">
       {/* Header */}
-      <header className="py-6 px-4 border-b border-gray-100">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-lavender-600">
-            Amari
+      <header className="sticky top-0 z-50 w-full border-b border-amari-sand bg-amari-cream/95 backdrop-blur-sm">
+        <div className="container flex h-16 items-center justify-between px-4">
+          <Link href="/" className="flex items-center space-x-3">
+            <Image
+              src="/logo.png"
+              alt="Amari"
+              width={120}
+              height={40}
+              className="h-8 w-auto"
+              priority
+            />
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/pricing" className="text-sm text-gray-600 hover:text-lavender-600">
-              View Plans
+            <Link href="/pricing">
+              <Button variant="ghost" size="sm">View Plans</Button>
             </Link>
-            <Link
-              href="/gifts/redeem"
-              className="text-sm px-4 py-2 bg-peach-100 text-peach-700 rounded-full hover:bg-peach-200"
-            >
-              Redeem Gift
+            <Link href="/gifts/redeem">
+              <Button variant="outline" size="sm">Redeem Gift</Button>
             </Link>
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="py-12 px-4 text-center">
-        <Gift className="h-16 w-16 text-peach-500 mx-auto mb-4" />
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-          Give the Gift of <span className="text-peach-600">Stories</span>
+      <section className="py-16 px-4 text-center">
+        <div className="w-16 h-16 bg-amari-rose/30 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <Gift className="h-8 w-8 text-amari-terracotta" />
+        </div>
+        <h1 className="text-4xl md:text-5xl font-display font-semibold text-amari-charcoal mb-4">
+          Give the Gift of <span className="text-amari-terracotta">Stories</span>
         </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+        <p className="text-xl text-amari-muted max-w-2xl mx-auto">
           Share magical, personalized bedtime stories with someone special.
           Perfect for birthdays, holidays, or just because.
         </p>
@@ -178,47 +189,49 @@ export default function GiftsPage() {
           <div className="max-w-6xl mx-auto">
             {isLoading ? (
               <div className="text-center py-12">
-                <div className="animate-spin h-8 w-8 border-4 border-peach-500 border-t-transparent rounded-full mx-auto" />
-                <p className="mt-4 text-gray-500">Loading gift packages...</p>
+                <div className="animate-spin h-8 w-8 border-4 border-amari-terracotta border-t-transparent rounded-full mx-auto" />
+                <p className="mt-4 text-amari-muted">Loading gift packages...</p>
               </div>
             ) : (
               Object.entries(packagesByTier).map(([tier, tierPackages]) => (
                 <div key={tier} className="mb-12">
                   <div className="flex items-center gap-2 mb-6">
-                    <span className={tierColors[tier]?.text || 'text-gray-600'}>
-                      {tierColors[tier]?.icon}
+                    <span className={tierConfig[tier]?.text || 'text-amari-charcoal'}>
+                      {tierConfig[tier]?.icon}
                     </span>
-                    <h2 className="text-2xl font-bold text-gray-900">
+                    <h2 className="text-2xl font-display font-semibold text-amari-charcoal">
                       {tierNames[tier] || tier}
                     </h2>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {tierPackages.map((pkg) => (
-                      <button
+                      <Card
                         key={pkg.id}
+                        className={`cursor-pointer transition-all hover:shadow-lg ${
+                          tierConfig[tier]?.bg || 'bg-white'
+                        }`}
                         onClick={() => handleSelectPackage(pkg)}
-                        className={`p-6 rounded-2xl text-left transition-all hover:scale-[1.02] hover:shadow-xl ${
-                          tierColors[tier]?.bg || 'bg-gray-50'
-                        } border-2 border-transparent hover:border-${tier === 'dream_weaver' ? 'blue' : tier === 'magic_circle' ? 'purple' : 'amber'}-300`}
                       >
-                        <div className="flex items-center justify-between mb-3">
-                          <span
-                            className={`px-3 py-1 rounded-full text-sm font-medium ${
-                              tierColors[tier]?.bg || 'bg-gray-100'
-                            } ${tierColors[tier]?.text || 'text-gray-600'}`}
-                          >
-                            {pkg.duration_months} months
-                          </span>
-                          <Heart className="h-5 w-5 text-pink-400" />
-                        </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">{pkg.name}</h3>
-                        <p className="text-sm text-gray-600 mb-4">{pkg.description}</p>
-                        <div className="flex items-baseline gap-1">
-                          <span className="text-3xl font-bold text-gray-900">
-                            ${(pkg.price_cents / 100).toFixed(2)}
-                          </span>
-                        </div>
-                      </button>
+                        <CardContent className="pt-6">
+                          <div className="flex items-center justify-between mb-3">
+                            <span
+                              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                tierConfig[tier]?.bg || 'bg-amari-sand'
+                              } ${tierConfig[tier]?.text || 'text-amari-charcoal'}`}
+                            >
+                              {pkg.duration_months} months
+                            </span>
+                            <Heart className="h-5 w-5 text-amari-rose" />
+                          </div>
+                          <h3 className="text-xl font-display font-semibold text-amari-charcoal mb-2">{pkg.name}</h3>
+                          <p className="text-sm text-amari-muted mb-4">{pkg.description}</p>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-3xl font-display font-semibold text-amari-charcoal">
+                              ${(pkg.price_cents / 100).toFixed(2)}
+                            </span>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
                 </div>
@@ -233,146 +246,136 @@ export default function GiftsPage() {
           <div className="max-w-2xl mx-auto">
             <button
               onClick={() => setStep('select')}
-              className="text-sm text-gray-500 hover:text-gray-700 mb-6"
+              className="text-sm text-amari-muted hover:text-amari-charcoal mb-6"
             >
               ← Back to packages
             </button>
 
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              {/* Selected Package Summary */}
-              <div className={`${tierColors[selectedPackage.tier]?.bg || 'bg-gray-50'} rounded-xl p-4 mb-8`}>
-                <div className="flex items-center justify-between">
+            <Card>
+              <CardContent className="pt-8">
+                {/* Selected Package Summary */}
+                <div className={`${tierConfig[selectedPackage.tier]?.bg || 'bg-amari-sand'} rounded-xl p-4 mb-8`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-amari-muted">You're gifting</p>
+                      <p className="text-xl font-display font-semibold text-amari-charcoal">{selectedPackage.name}</p>
+                      <p className="text-sm text-amari-muted">
+                        {selectedPackage.duration_months} months of {tierNames[selectedPackage.tier]}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-display font-semibold text-amari-charcoal">
+                        ${(selectedPackage.price_cents / 100).toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Form */}
+                <div className="space-y-6">
                   <div>
-                    <p className="text-sm text-gray-500">You're gifting</p>
-                    <p className="text-xl font-bold text-gray-900">{selectedPackage.name}</p>
-                    <p className="text-sm text-gray-600">
-                      {selectedPackage.duration_months} months of {tierNames[selectedPackage.tier]}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900">
-                      ${(selectedPackage.price_cents / 100).toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Form */}
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-lavender-500" />
-                    Your Information
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Your Email *
-                      </label>
-                      <input
-                        type="email"
-                        value={purchaserEmail}
-                        onChange={(e) => setPurchaserEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-500 focus:border-transparent"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Your Name
-                      </label>
-                      <input
-                        type="text"
-                        value={purchaserName}
-                        onChange={(e) => setPurchaserName(e.target.value)}
-                        placeholder="Your name (for gift message)"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Gift className="h-5 w-5 text-peach-500" />
-                    Recipient Information (Optional)
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-4">
-                    We'll send the gift code to you. Add recipient info if you'd like us to email them too.
-                  </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Recipient Email
-                      </label>
-                      <input
-                        type="email"
-                        value={recipientEmail}
-                        onChange={(e) => setRecipientEmail(e.target.value)}
-                        placeholder="recipient@email.com"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-500 focus:border-transparent"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Recipient Name
-                      </label>
-                      <input
-                        type="text"
-                        value={recipientName}
-                        onChange={(e) => setRecipientName(e.target.value)}
-                        placeholder="Recipient's name"
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-500 focus:border-transparent"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Heart className="h-5 w-5 text-pink-500" />
-                    Personal Message
-                  </h3>
-                  <textarea
-                    value={giftMessage}
-                    onChange={(e) => setGiftMessage(e.target.value)}
-                    placeholder="Add a personal message to include with the gift..."
-                    rows={3}
-                    maxLength={500}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">{giftMessage.length}/500 characters</p>
-                </div>
-
-                {recipientEmail && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-mint-500" />
-                      Delivery Date (Optional)
+                    <h3 className="text-lg font-display font-semibold text-amari-charcoal mb-4 flex items-center gap-2">
+                      <Mail className="h-5 w-5 text-amari-sage" />
+                      Your Information
                     </h3>
-                    <input
-                      type="date"
-                      value={deliveryDate}
-                      onChange={(e) => setDeliveryDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lavender-500 focus:border-transparent"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      Leave empty to send immediately after purchase
-                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Your Email *</Label>
+                        <Input
+                          type="email"
+                          value={purchaserEmail}
+                          onChange={(e) => setPurchaserEmail(e.target.value)}
+                          placeholder="your@email.com"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Your Name</Label>
+                        <Input
+                          type="text"
+                          value={purchaserName}
+                          onChange={(e) => setPurchaserName(e.target.value)}
+                          placeholder="Your name (for gift message)"
+                        />
+                      </div>
+                    </div>
                   </div>
-                )}
 
-                <button
-                  onClick={handleProceedToConfirm}
-                  className="w-full py-4 bg-gradient-to-r from-peach-500 to-pink-500 text-white rounded-xl font-semibold hover:from-peach-600 hover:to-pink-600 transition-all shadow-lg flex items-center justify-center gap-2"
-                >
-                  Continue to Checkout
-                  <ArrowRight className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
+                  <div>
+                    <h3 className="text-lg font-display font-semibold text-amari-charcoal mb-4 flex items-center gap-2">
+                      <Gift className="h-5 w-5 text-amari-terracotta" />
+                      Recipient Information (Optional)
+                    </h3>
+                    <p className="text-sm text-amari-muted mb-4">
+                      We'll send the gift code to you. Add recipient info if you'd like us to email them too.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label>Recipient Email</Label>
+                        <Input
+                          type="email"
+                          value={recipientEmail}
+                          onChange={(e) => setRecipientEmail(e.target.value)}
+                          placeholder="recipient@email.com"
+                        />
+                      </div>
+                      <div>
+                        <Label>Recipient Name</Label>
+                        <Input
+                          type="text"
+                          value={recipientName}
+                          onChange={(e) => setRecipientName(e.target.value)}
+                          placeholder="Recipient's name"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-display font-semibold text-amari-charcoal mb-4 flex items-center gap-2">
+                      <Heart className="h-5 w-5 text-amari-rose" />
+                      Personal Message
+                    </h3>
+                    <textarea
+                      value={giftMessage}
+                      onChange={(e) => setGiftMessage(e.target.value)}
+                      placeholder="Add a personal message to include with the gift..."
+                      rows={3}
+                      maxLength={500}
+                      className="flex w-full rounded-xl border border-amari-sand bg-white px-4 py-3 text-sm text-amari-charcoal placeholder:text-amari-muted focus:border-amari-terracotta focus:ring-2 focus:ring-amari-terracotta/20 focus:outline-none"
+                    />
+                    <p className="text-xs text-amari-muted mt-1">{giftMessage.length}/500 characters</p>
+                  </div>
+
+                  {recipientEmail && (
+                    <div>
+                      <h3 className="text-lg font-display font-semibold text-amari-charcoal mb-4 flex items-center gap-2">
+                        <Calendar className="h-5 w-5 text-amari-sage" />
+                        Delivery Date (Optional)
+                      </h3>
+                      <Input
+                        type="date"
+                        value={deliveryDate}
+                        onChange={(e) => setDeliveryDate(e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                      />
+                      <p className="text-sm text-amari-muted mt-1">
+                        Leave empty to send immediately after purchase
+                      </p>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleProceedToConfirm}
+                    className="w-full"
+                    size="lg"
+                  >
+                    Continue to Checkout
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </section>
       )}
@@ -382,79 +385,98 @@ export default function GiftsPage() {
           <div className="max-w-2xl mx-auto">
             <button
               onClick={() => setStep('details')}
-              className="text-sm text-gray-500 hover:text-gray-700 mb-6"
+              className="text-sm text-amari-muted hover:text-amari-charcoal mb-6"
             >
               ← Back to details
             </button>
 
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-                Confirm Your Gift
-              </h2>
+            <Card>
+              <CardContent className="pt-8">
+                <h2 className="text-2xl font-display font-semibold text-amari-charcoal mb-6 text-center">
+                  Confirm Your Gift
+                </h2>
 
-              <div className="space-y-4 mb-8">
-                <div className="flex justify-between py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Gift Package</span>
-                  <span className="font-medium text-gray-900">{selectedPackage.name}</span>
-                </div>
-                <div className="flex justify-between py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Duration</span>
-                  <span className="font-medium text-gray-900">
-                    {selectedPackage.duration_months} months
-                  </span>
-                </div>
-                <div className="flex justify-between py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Subscription Tier</span>
-                  <span className="font-medium text-gray-900">
-                    {tierNames[selectedPackage.tier]}
-                  </span>
-                </div>
-                <div className="flex justify-between py-3 border-b border-gray-100">
-                  <span className="text-gray-600">Your Email</span>
-                  <span className="font-medium text-gray-900">{purchaserEmail}</span>
-                </div>
-                {recipientEmail && (
-                  <div className="flex justify-between py-3 border-b border-gray-100">
-                    <span className="text-gray-600">Recipient Email</span>
-                    <span className="font-medium text-gray-900">{recipientEmail}</span>
+                <div className="space-y-4 mb-8">
+                  <div className="flex justify-between py-3 border-b border-amari-sand">
+                    <span className="text-amari-muted">Gift Package</span>
+                    <span className="font-medium text-amari-charcoal">{selectedPackage.name}</span>
                   </div>
-                )}
-                <div className="flex justify-between py-3 text-xl">
-                  <span className="font-semibold text-gray-900">Total</span>
-                  <span className="font-bold text-gray-900">
-                    ${(selectedPackage.price_cents / 100).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="bg-mint-50 rounded-xl p-4 mb-6">
-                <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-mint-600 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-gray-900">Gift code delivery</p>
-                    <p className="text-sm text-gray-600">
-                      You'll receive the gift code via email immediately after purchase.
-                      {recipientEmail && deliveryDate
-                        ? ` We'll also email ${recipientEmail} on ${deliveryDate}.`
-                        : recipientEmail
-                          ? ` We'll also email ${recipientEmail} right away.`
-                          : ''}
-                    </p>
+                  <div className="flex justify-between py-3 border-b border-amari-sand">
+                    <span className="text-amari-muted">Duration</span>
+                    <span className="font-medium text-amari-charcoal">
+                      {selectedPackage.duration_months} months
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-3 border-b border-amari-sand">
+                    <span className="text-amari-muted">Subscription Tier</span>
+                    <span className="font-medium text-amari-charcoal">
+                      {tierNames[selectedPackage.tier]}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-3 border-b border-amari-sand">
+                    <span className="text-amari-muted">Your Email</span>
+                    <span className="font-medium text-amari-charcoal">{purchaserEmail}</span>
+                  </div>
+                  {recipientEmail && (
+                    <div className="flex justify-between py-3 border-b border-amari-sand">
+                      <span className="text-amari-muted">Recipient Email</span>
+                      <span className="font-medium text-amari-charcoal">{recipientEmail}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between py-3 text-xl">
+                    <span className="font-display font-semibold text-amari-charcoal">Total</span>
+                    <span className="font-display font-semibold text-amari-charcoal">
+                      ${(selectedPackage.price_cents / 100).toFixed(2)}
+                    </span>
                   </div>
                 </div>
-              </div>
 
-              <button
-                onClick={handleCheckout}
-                disabled={isCheckingOut}
-                className="w-full py-4 bg-gradient-to-r from-peach-500 to-pink-500 text-white rounded-xl font-semibold hover:from-peach-600 hover:to-pink-600 transition-all shadow-lg disabled:opacity-50"
-              >
-                {isCheckingOut ? 'Processing...' : `Pay $${(selectedPackage.price_cents / 100).toFixed(2)}`}
-              </button>
-            </div>
+                <div className="bg-amari-sage/10 rounded-xl p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <Check className="h-5 w-5 text-amari-sage mt-0.5" />
+                    <div>
+                      <p className="font-medium text-amari-charcoal">Gift code delivery</p>
+                      <p className="text-sm text-amari-muted">
+                        You'll receive the gift code via email immediately after purchase.
+                        {recipientEmail && deliveryDate
+                          ? ` We'll also email ${recipientEmail} on ${deliveryDate}.`
+                          : recipientEmail
+                            ? ` We'll also email ${recipientEmail} right away.`
+                            : ''}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleCheckout}
+                  disabled={isCheckingOut}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isCheckingOut ? 'Processing...' : `Pay $${(selectedPackage.price_cents / 100).toFixed(2)}`}
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </section>
       )}
+
+      {/* Footer */}
+      <footer className="border-t border-amari-sand py-8 mt-12">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <Image
+            src="/logo.png"
+            alt="Amari"
+            width={80}
+            height={28}
+            className="h-6 w-auto opacity-70"
+          />
+          <p className="text-sm text-amari-muted">
+            &copy; {new Date().getFullYear()} Amari. Bedtime stories as unique as your child.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }

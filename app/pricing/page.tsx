@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Check,
   Sparkles,
@@ -12,10 +13,10 @@ import {
   Gift,
   BookOpen,
   Mic,
-  Users,
-  Download,
-  Zap,
+  ChevronDown,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
 type BillingCycle = 'monthly' | 'annual';
 
@@ -120,7 +121,6 @@ export default function PricingPage() {
 
   const handleSubscribe = async (tier: PricingTierExtended) => {
     if (!isSignedIn) {
-      // Redirect to sign up with return URL
       router.push(`/sign-up?redirect=/pricing&tier=${tier.slug}&billing=${billingCycle}`);
       return;
     }
@@ -165,19 +165,23 @@ export default function PricingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-lavender-50 via-white to-skyblue-50">
+    <div className="min-h-screen bg-amari-cream">
       {/* Header */}
-      <header className="py-6 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="text-2xl font-bold text-lavender-600">
-            Amari
+      <header className="sticky top-0 z-50 w-full border-b border-amari-sand bg-amari-cream/95 backdrop-blur-sm">
+        <div className="container flex h-16 items-center justify-between px-4">
+          <Link href="/" className="flex items-center space-x-3">
+            <Image
+              src="/logo.png"
+              alt="Amari"
+              width={120}
+              height={40}
+              className="h-8 w-auto"
+              priority
+            />
           </Link>
           {!isSignedIn && (
-            <Link
-              href="/sign-in"
-              className="text-sm text-gray-600 hover:text-lavender-600"
-            >
-              Sign In
+            <Link href="/sign-in">
+              <Button variant="ghost" size="sm">Sign In</Button>
             </Link>
           )}
         </div>
@@ -185,48 +189,48 @@ export default function PricingPage() {
 
       {/* Onboarding Banner */}
       {isOnboarding && (
-        <section className="py-6 px-4 bg-gradient-to-r from-lavender-100 to-skyblue-100 border-b border-lavender-200">
+        <section className="py-6 px-4 bg-amari-sage/10 border-b border-amari-sand">
           <div className="max-w-4xl mx-auto text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Sparkles className="h-6 w-6 text-lavender-600" />
-              <h2 className="text-xl font-bold text-lavender-900">Welcome to Amari!</h2>
+              <Sparkles className="h-6 w-6 text-amari-sage" />
+              <h2 className="text-xl font-display font-semibold text-amari-charcoal">Welcome to Amari!</h2>
             </div>
-            <p className="text-lavender-700">
+            <p className="text-amari-muted">
               Choose a plan to start creating personalized bedtime stories for your child.
               <br />
-              <span className="font-medium">Try free for 14 days - your card won't be charged until the trial ends.</span>
+              <span className="font-medium text-amari-charcoal">Try free for 14 days - your card won't be charged until the trial ends.</span>
             </p>
           </div>
         </section>
       )}
 
       {/* Hero */}
-      <section className="py-12 px-4 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+      <section className="py-16 px-4 text-center">
+        <h1 className="text-4xl md:text-5xl font-display font-semibold text-amari-charcoal mb-4">
           {isOnboarding ? (
-            <>One More Step to <span className="text-lavender-600">Magic</span></>
+            <>One More Step to <span className="text-amari-terracotta">Magic</span></>
           ) : (
-            <>Choose Your <span className="text-lavender-600">Story Plan</span></>
+            <>Choose Your <span className="text-amari-terracotta">Story Plan</span></>
           )}
         </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-4">
+        <p className="text-xl text-amari-muted max-w-2xl mx-auto mb-4">
           Magical bedtime stories personalized for your child.
         </p>
-        <p className="text-lg text-lavender-600 font-medium mb-8">
+        <p className="text-lg text-amari-sage font-medium mb-10">
           Start with a 14-day free trial. Cancel anytime.
         </p>
 
         {/* Billing Toggle */}
         <div className="flex items-center justify-center gap-4 mb-12">
           <span
-            className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-gray-900' : 'text-gray-500'}`}
+            className={`text-sm font-medium ${billingCycle === 'monthly' ? 'text-amari-charcoal' : 'text-amari-muted'}`}
           >
             Monthly
           </span>
           <button
             onClick={() => setBillingCycle(billingCycle === 'monthly' ? 'annual' : 'monthly')}
             className={`relative w-14 h-7 rounded-full transition-colors ${
-              billingCycle === 'annual' ? 'bg-lavender-600' : 'bg-gray-300'
+              billingCycle === 'annual' ? 'bg-amari-terracotta' : 'bg-amari-sand'
             }`}
           >
             <span
@@ -236,12 +240,12 @@ export default function PricingPage() {
             />
           </button>
           <span
-            className={`text-sm font-medium ${billingCycle === 'annual' ? 'text-gray-900' : 'text-gray-500'}`}
+            className={`text-sm font-medium ${billingCycle === 'annual' ? 'text-amari-charcoal' : 'text-amari-muted'}`}
           >
             Annual
           </span>
           {billingCycle === 'annual' && (
-            <span className="ml-2 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+            <span className="ml-2 px-2 py-0.5 bg-amari-sage/20 text-amari-sage text-xs font-medium rounded-full">
               Save up to 30%
             </span>
           )}
@@ -252,191 +256,193 @@ export default function PricingPage() {
       <section className="pb-20 px-4">
         <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
           {tiers.map((tier) => (
-            <div
+            <Card
               key={tier.slug}
-              className={`relative rounded-2xl p-6 ${
+              className={`relative ${
                 tier.highlighted
-                  ? 'bg-gradient-to-br from-lavender-600 to-skyblue-600 text-white shadow-xl scale-105'
-                  : 'bg-white border border-gray-200 shadow-lg'
+                  ? 'bg-amari-terracotta text-white border-amari-terracotta shadow-xl scale-105'
+                  : 'bg-white'
               }`}
             >
               {tier.highlighted && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="px-3 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded-full">
+                  <span className="px-3 py-1 bg-amari-sage text-white text-xs font-bold rounded-full">
                     MOST POPULAR
                   </span>
                 </div>
               )}
               {tier.hasTrial && !tier.highlighted && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                  <span className="px-3 py-1 bg-amari-sage text-white text-xs font-bold rounded-full">
                     14-DAY FREE TRIAL
                   </span>
                 </div>
               )}
 
-              {/* Icon & Name */}
-              <div className="flex items-center gap-3 mb-4">
+              <CardContent className="pt-8 pb-6">
+                {/* Icon & Name */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div
+                    className={`p-2 rounded-xl ${
+                      tier.highlighted ? 'bg-white/20' : 'bg-amari-terracotta/10'
+                    }`}
+                  >
+                    <span className={tier.highlighted ? 'text-white' : 'text-amari-terracotta'}>
+                      {tier.icon}
+                    </span>
+                  </div>
+                  <div>
+                    <h3
+                      className={`font-display font-semibold text-lg ${
+                        tier.highlighted ? 'text-white' : 'text-amari-charcoal'
+                      }`}
+                    >
+                      {tier.name}
+                    </h3>
+                    <p
+                      className={`text-sm ${
+                        tier.highlighted ? 'text-white/80' : 'text-amari-muted'
+                      }`}
+                    >
+                      {tier.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Price */}
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className={`text-4xl font-display font-semibold ${
+                        tier.highlighted ? 'text-white' : 'text-amari-charcoal'
+                      }`}
+                    >
+                      ${getPrice(tier).toFixed(2)}
+                    </span>
+                    <span
+                      className={`text-sm ${tier.highlighted ? 'text-white/70' : 'text-amari-muted'}`}
+                    >
+                      /month
+                    </span>
+                  </div>
+                  {billingCycle === 'annual' && tier.monthlyPrice > 0 && (
+                    <p
+                      className={`text-sm mt-1 ${
+                        tier.highlighted ? 'text-white/80' : 'text-amari-sage'
+                      }`}
+                    >
+                      Save {getSavings(tier)}% with annual billing
+                    </p>
+                  )}
+                </div>
+
+                {/* Quick Stats */}
                 <div
-                  className={`p-2 rounded-lg ${
-                    tier.highlighted ? 'bg-white/20' : 'bg-lavender-100'
+                  className={`flex gap-4 mb-6 pb-6 border-b ${
+                    tier.highlighted ? 'border-white/20' : 'border-amari-sand'
                   }`}
                 >
-                  <span className={tier.highlighted ? 'text-white' : 'text-lavender-600'}>
-                    {tier.icon}
-                  </span>
-                </div>
-                <div>
-                  <h3
-                    className={`font-bold text-lg ${
-                      tier.highlighted ? 'text-white' : 'text-gray-900'
-                    }`}
-                  >
-                    {tier.name}
-                  </h3>
-                  <p
-                    className={`text-sm ${
-                      tier.highlighted ? 'text-white/80' : 'text-gray-500'
-                    }`}
-                  >
-                    {tier.description}
-                  </p>
-                </div>
-              </div>
-
-              {/* Price */}
-              <div className="mb-6">
-                <div className="flex items-baseline gap-1">
-                  <span
-                    className={`text-4xl font-bold ${
-                      tier.highlighted ? 'text-white' : 'text-gray-900'
-                    }`}
-                  >
-                    ${getPrice(tier).toFixed(2)}
-                  </span>
-                  <span
-                    className={`text-sm ${tier.highlighted ? 'text-white/70' : 'text-gray-500'}`}
-                  >
-                    /month
-                  </span>
-                </div>
-                {billingCycle === 'annual' && tier.monthlyPrice > 0 && (
-                  <p
-                    className={`text-sm mt-1 ${
-                      tier.highlighted ? 'text-white/80' : 'text-green-600'
-                    }`}
-                  >
-                    Save {getSavings(tier)}% with annual billing
-                  </p>
-                )}
-              </div>
-
-              {/* Quick Stats */}
-              <div
-                className={`flex gap-4 mb-6 pb-6 border-b ${
-                  tier.highlighted ? 'border-white/20' : 'border-gray-100'
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <BookOpen
-                    className={`h-4 w-4 ${
-                      tier.highlighted ? 'text-white/70' : 'text-lavender-500'
-                    }`}
-                  />
-                  <span
-                    className={`text-sm ${
-                      tier.highlighted ? 'text-white/90' : 'text-gray-700'
-                    }`}
-                  >
-                    {tier.storiesPerMonth} stories
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Mic
-                    className={`h-4 w-4 ${
-                      tier.highlighted ? 'text-white/70' : 'text-lavender-500'
-                    }`}
-                  />
-                  <span
-                    className={`text-sm ${
-                      tier.highlighted ? 'text-white/90' : 'text-gray-700'
-                    }`}
-                  >
-                    {tier.premiumVoices} voices
-                  </span>
-                </div>
-              </div>
-
-              {/* Features */}
-              <ul className="space-y-3 mb-6">
-                {tier.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-2">
-                    <Check
-                      className={`h-5 w-5 flex-shrink-0 ${
-                        feature.included
-                          ? tier.highlighted
-                            ? 'text-white'
-                            : 'text-green-500'
-                          : 'text-gray-300'
+                  <div className="flex items-center gap-1.5">
+                    <BookOpen
+                      className={`h-4 w-4 ${
+                        tier.highlighted ? 'text-white/70' : 'text-amari-sage'
                       }`}
                     />
                     <span
                       className={`text-sm ${
-                        feature.included
-                          ? tier.highlighted
-                            ? 'text-white/90'
-                            : 'text-gray-700'
-                          : 'text-gray-400 line-through'
+                        tier.highlighted ? 'text-white/90' : 'text-amari-charcoal'
                       }`}
                     >
-                      {feature.text}
+                      {tier.storiesPerMonth} stories
                     </span>
-                  </li>
-                ))}
-              </ul>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Mic
+                      className={`h-4 w-4 ${
+                        tier.highlighted ? 'text-white/70' : 'text-amari-sage'
+                      }`}
+                    />
+                    <span
+                      className={`text-sm ${
+                        tier.highlighted ? 'text-white/90' : 'text-amari-charcoal'
+                      }`}
+                    >
+                      {tier.premiumVoices} voices
+                    </span>
+                  </div>
+                </div>
 
-              {/* CTA Button */}
-              <button
-                onClick={() => handleSubscribe(tier)}
-                disabled={isLoading === tier.slug}
-                className={`w-full py-3 px-4 rounded-xl font-semibold transition-all ${
-                  tier.highlighted
-                    ? 'bg-white text-lavender-600 hover:bg-white/90'
-                    : 'bg-lavender-600 text-white hover:bg-lavender-700'
-                } disabled:opacity-50`}
-              >
-                {isLoading === tier.slug ? 'Loading...' : tier.ctaText}
-              </button>
-            </div>
+                {/* Features */}
+                <ul className="space-y-3 mb-6">
+                  {tier.features.map((feature, i) => (
+                    <li key={i} className="flex items-start gap-2">
+                      <Check
+                        className={`h-5 w-5 flex-shrink-0 ${
+                          feature.included
+                            ? tier.highlighted
+                              ? 'text-white'
+                              : 'text-amari-sage'
+                            : 'text-amari-sand'
+                        }`}
+                      />
+                      <span
+                        className={`text-sm ${
+                          feature.included
+                            ? tier.highlighted
+                              ? 'text-white/90'
+                              : 'text-amari-charcoal'
+                            : 'text-amari-muted line-through'
+                        }`}
+                      >
+                        {feature.text}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA Button */}
+                <Button
+                  onClick={() => handleSubscribe(tier)}
+                  disabled={isLoading === tier.slug}
+                  className={`w-full ${
+                    tier.highlighted
+                      ? 'bg-white text-amari-terracotta hover:bg-white/90'
+                      : ''
+                  }`}
+                  variant={tier.highlighted ? 'ghost' : 'default'}
+                >
+                  {isLoading === tier.slug ? 'Loading...' : tier.ctaText}
+                </Button>
+              </CardContent>
+            </Card>
           ))}
         </div>
       </section>
 
       {/* Gift Section */}
-      <section className="py-16 px-4 bg-gradient-to-r from-peach-100 to-mint-100">
+      <section className="py-16 px-4 bg-amari-rose/30">
         <div className="max-w-4xl mx-auto text-center">
-          <Gift className="h-12 w-12 text-peach-600 mx-auto mb-4" />
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <Gift className="h-12 w-12 text-amari-terracotta mx-auto mb-4" />
+          <h2 className="text-3xl font-display font-semibold text-amari-charcoal mb-4">
             Give the Gift of Stories
           </h2>
-          <p className="text-lg text-gray-600 mb-8">
+          <p className="text-lg text-amari-muted mb-8">
             Perfect for grandparents, aunts, uncles, and anyone who wants to share
             the magic of personalized bedtime stories.
           </p>
-          <Link
-            href="/gifts"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-peach-500 text-white rounded-full font-semibold hover:bg-peach-600 transition-colors shadow-lg"
-          >
-            <Gift className="h-5 w-5" />
-            Shop Gift Subscriptions
+          <Link href="/gifts">
+            <Button size="lg" variant="secondary">
+              <Gift className="mr-2 h-5 w-5" />
+              Shop Gift Subscriptions
+            </Button>
           </Link>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 px-4">
+      <section className="py-16 px-4 bg-white">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
+          <h2 className="text-3xl font-display font-semibold text-center text-amari-charcoal mb-12">
             Frequently Asked Questions
           </h2>
           <div className="space-y-6">
@@ -465,25 +471,40 @@ export default function PricingPage() {
       </section>
 
       {/* Footer CTA */}
-      <section className="py-12 px-4 bg-lavender-600">
+      <section className="py-16 px-4 bg-amari-terracotta">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">
+          <h2 className="text-3xl font-display font-semibold text-white mb-4">
             Ready to Start Your Story?
           </h2>
-          <p className="text-lg text-lavender-100 mb-8">
+          <p className="text-lg text-white/80 mb-8">
             Join thousands of families creating magical bedtime memories.
             <br />
             <span className="font-medium">Try free for 14 days - no commitment required.</span>
           </p>
-          <Link
-            href="/sign-up"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-lavender-600 rounded-full font-semibold hover:bg-lavender-50 transition-colors shadow-lg"
-          >
-            <Sparkles className="h-5 w-5" />
-            Start Your Free Trial
+          <Link href="/sign-up">
+            <Button size="lg" className="bg-white text-amari-terracotta hover:bg-white/90">
+              <Sparkles className="mr-2 h-5 w-5" />
+              Start Your Free Trial
+            </Button>
           </Link>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t border-amari-sand py-8 bg-amari-cream">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
+          <Image
+            src="/logo.png"
+            alt="Amari"
+            width={80}
+            height={28}
+            className="h-6 w-auto opacity-70"
+          />
+          <p className="text-sm text-amari-muted">
+            &copy; {new Date().getFullYear()} Amari. Bedtime stories as unique as your child.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -492,15 +513,15 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border-b border-gray-200 pb-6">
+    <div className="border-b border-amari-sand pb-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between text-left"
       >
-        <span className="font-semibold text-gray-900">{question}</span>
-        <span className="text-lavender-600 text-xl">{isOpen ? '−' : '+'}</span>
+        <span className="font-medium text-amari-charcoal">{question}</span>
+        <ChevronDown className={`h-5 w-5 text-amari-muted transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
-      {isOpen && <p className="mt-3 text-gray-600">{answer}</p>}
+      {isOpen && <p className="mt-3 text-amari-muted">{answer}</p>}
     </div>
   );
 }

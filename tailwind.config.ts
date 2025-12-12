@@ -51,7 +51,26 @@ const config: Config = {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
-        // Amari custom colors
+        // ===========================================
+        // NEW AMARI BRAND COLORS (Cozy Modern)
+        // ===========================================
+        amari: {
+          charcoal: '#2D3436',      // Primary text, headings
+          terracotta: '#E07A5F',    // Primary CTA, accents
+          sage: '#81B29A',          // Success, secondary accent
+          cream: '#FAF7F2',         // Page background (light)
+          white: '#FFFFFF',         // Cards, surfaces
+          muted: '#9A8C7D',         // Secondary text, borders
+          rose: '#D4A5A5',          // Subtle highlights
+          sand: '#E8E2D9',          // Borders, dividers
+          // Dark mode variants
+          night: '#1A1D1E',         // Dark mode background
+          surface: '#252829',       // Dark mode cards
+        },
+
+        // ===========================================
+        // LEGACY COLORS (keeping for migration)
+        // ===========================================
         lavender: {
           50: '#faf5ff',
           100: '#f3e8ff',
@@ -88,6 +107,16 @@ const config: Config = {
           800: '#854d0e',
           900: '#713f12',
         },
+        // Peach for gift sections
+        peach: {
+          50: '#FFF5F0',
+          100: '#FFE8DD',
+          200: '#FFD4C4',
+          300: '#FFBDA6',
+          400: '#FFA383',
+          500: '#FF8A65',
+          600: '#E07A5F',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
@@ -120,6 +149,10 @@ const config: Config = {
         'glow': 'glow 2s ease-in-out infinite',
       },
       fontFamily: {
+        // NEW: Amari brand fonts
+        display: ['var(--font-fraunces)', 'Fraunces', 'serif'],
+        body: ['var(--font-dm-sans)', 'DM Sans', 'sans-serif'],
+        // LEGACY: keeping for migration
         playfair: ['var(--font-playfair)', 'serif'],
       },
     },

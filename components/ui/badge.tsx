@@ -4,17 +4,23 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amari-terracotta focus:ring-offset-2",
   {
     variants: {
       variant: {
+        // NEW AMARI STYLES
         default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+          "border-transparent bg-amari-terracotta text-white",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+          "border-transparent bg-amari-sage text-white",
+        outline:
+          "border-amari-sand text-amari-charcoal dark:text-amari-cream",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+          "border-transparent bg-red-500 text-white",
+        success:
+          "border-transparent bg-amari-sage text-white",
+        muted:
+          "border-transparent bg-amari-sand text-amari-charcoal dark:bg-amari-surface dark:text-amari-cream",
       },
     },
     defaultVariants: {

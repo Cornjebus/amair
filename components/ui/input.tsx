@@ -10,7 +10,14 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         className={cn(
-          'amari-input flex h-12 w-full text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-lavender-400 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+          // NEW AMARI STYLE: Clean, warm, no heavy borders
+          'flex h-12 w-full rounded-xl border border-amari-sand bg-white dark:bg-amari-surface px-4 py-3 text-sm font-body',
+          'text-amari-charcoal dark:text-amari-cream',
+          'placeholder:text-amari-muted',
+          'transition-all duration-200',
+          'focus:border-amari-terracotta focus:ring-2 focus:ring-amari-terracotta/20 focus:outline-none',
+          'disabled:cursor-not-allowed disabled:opacity-50',
+          'file:border-0 file:bg-transparent file:text-sm file:font-medium',
           className
         )}
         ref={ref}
