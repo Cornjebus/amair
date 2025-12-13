@@ -453,3 +453,68 @@ export async function sendGiftReceivedEmail(
     html,
   });
 }
+
+/**
+ * Send gift purchase confirmation to purchaser
+ */
+export async function sendGiftPurchaseConfirmationEmail(
+  email: string,
+  data: {
+    purchaserName: string;
+    recipientName?: string;
+    recipientEmail?: string;
+    giftCode: string;
+    tierName: string;
+    duration: string;
+    giftMessage?: string;
+  }
+): Promise<{ id: string } | null> {
+  const recipientInfo = data.recipientEmail
+    ? `We'll deliver this gift to <strong>${data.recipientEmail}</strong> automatically.`
+    : `Share this code with your recipient so they can redeem their gift.`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 30px;">
+    <h1 style="color: #7c3aed;">Gift Purchase Confirmed!</h1>
+  </div>
+
+  <p>Hi ${data.purchaserName || 'there'},</p>
+
+  <p>Thank you for purchasing a MyAmari gift! Here are the details:</p>
+
+  <div style="background: #f5f3ff; border-radius: 12px; padding: 20px; margin: 20px 0;">
+    <p style="margin: 0;"><strong>Gift:</strong> ${data.duration} of ${data.tierName}</p>
+    ${data.recipientName ? `<p style="margin: 10px 0 0;"><strong>For:</strong> ${data.recipientName}</p>` : ''}
+  </div>
+
+  <div style="background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%); border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
+    <p style="color: white; margin: 0 0 10px; font-size: 14px;">Gift redemption code:</p>
+    <p style="color: white; font-size: 24px; font-weight: bold; margin: 0; letter-spacing: 2px;">${data.giftCode}</p>
+  </div>
+
+  <p>${recipientInfo}</p>
+
+  <p>The recipient can redeem this gift at:</p>
+  <p><a href="https://www.myamari.ai/gifts/redeem?code=${data.giftCode}" style="color: #7c3aed;">www.myamari.ai/gifts/redeem</a></p>
+
+  <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+
+  <p>Thank you for sharing the magic!</p>
+  <p><strong>The MyAmari Team</strong></p>
+</body>
+</html>
+  `.trim();
+
+  return sendEmail({
+    to: email,
+    subject: 'Your MyAmari Gift Purchase Confirmation',
+    html,
+  });
+}

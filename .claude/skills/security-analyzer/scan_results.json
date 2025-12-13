@@ -1,0 +1,77 @@
+{
+  "total_vulnerabilities": 1,
+  "by_severity": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 0,
+    "LOW": 0
+  },
+  "vulnerabilities": [
+    {
+      "id": "GHSA-mwv6-3258-q52c",
+      "cves": [],
+      "summary": "Next Vulnerable to Denial of Service with Server Components",
+      "details": "A vulnerability affects certain React packages for versions 19.0.0, 19.0.1, 19.1.0, 19.1.1, 19.1.2, 19.2.0, and 19.2.1 and frameworks that use the affected packages, including Next.js 15.x and 16.x using the App Router. The issue is tracked upstream as [CVE-2025-55184](https://www.cve.org/CVERecord?id=CVE-2025-55184).\n\nA malicious HTTP request can be crafted and sent to any App Router endpoint that, when deserialized, can cause the server process to hang and consume CPU. This can result in denial of service in unpatched environments.",
+      "severity": {
+        "score": 0,
+        "level": "UNKNOWN",
+        "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H"
+      },
+      "package": "next",
+      "ecosystem": "npm",
+      "affected_ranges": [
+        {
+          "introduced": "13.3.0",
+          "fixed": "14.2.34"
+        },
+        {
+          "introduced": "15.0.0-canary.0",
+          "fixed": "15.0.6"
+        },
+        {
+          "introduced": "15.1.1-canary.0",
+          "fixed": "15.1.10"
+        },
+        {
+          "introduced": "15.2.0-canary.0",
+          "fixed": "15.2.7"
+        },
+        {
+          "introduced": "15.3.0-canary.0",
+          "fixed": "15.3.7"
+        },
+        {
+          "introduced": "15.4.0-canary.0",
+          "fixed": "15.4.9"
+        },
+        {
+          "introduced": "15.5.1-canary.0",
+          "fixed": "15.5.8"
+        },
+        {
+          "introduced": "15.6.0-canary.0",
+          "fixed": "15.6.0-canary.59"
+        },
+        {
+          "introduced": "16.0.0-beta.0",
+          "fixed": "16.0.9"
+        },
+        {
+          "introduced": "16.1.0-canary.0",
+          "fixed": "16.1.0-canary.17"
+        }
+      ],
+      "references": [
+        "https://github.com/vercel/next.js/security/advisories/GHSA-mwv6-3258-q52c",
+        "https://github.com/vercel/next.js",
+        "https://nextjs.org/blog/security-update-2025-12-11",
+        "https://www.cve.org/CVERecord?id=CVE-2025-55184"
+      ],
+      "published": "2025-12-11T22:49:27Z",
+      "modified": "2025-12-11T23:05:43.675812Z",
+      "source_file": "/Users/corneliusgeorge/amair/package.json",
+      "installed_version": "14.2.33",
+      "risk_score": 2.9
+    }
+  ]
+}

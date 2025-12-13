@@ -386,6 +386,16 @@ export async function handleGiftPurchaseCompleted(
     return
   }
 
+  // Get tier name for emails
+  const tierNames: Record<string, string> = {
+    dream_weaver: 'Dream Weaver',
+    magic_circle: 'Magic Circle',
+    enchanted_library: 'Enchanted Library',
+  }
+  const tierName = tierNames[metadata.tier] || metadata.tier
+  const durationMonths = parseInt(metadata.durationMonths) || 1
+  const duration = durationMonths === 1 ? '1 month' : `${durationMonths} months`
+
   try {
     // Update the gift subscription record to confirm payment
     const { data: gift, error } = await supabase
@@ -410,8 +420,52 @@ export async function handleGiftPurchaseCompleted(
 
     console.log(`[Webhook] Gift purchase completed: ${redemptionCode}`)
 
-    // TODO: Send email to purchaser with redemption code
-    // TODO: If recipient email provided and delivery date is today/past, send gift email
+    // Import email functions
+    const { sendGiftPurchaseConfirmationEmail, sendGiftReceivedEmail } = await import('@/lib/email/resend')
+
+    // Send confirmation email to purchaser
+    if (metadata.purchaserEmail) {
+      try {
+        await sendGiftPurchaseConfirmationEmail(metadata.purchaserEmail, {
+          purchaserName: metadata.purchaserName || 'there',
+          recipientName: metadata.recipientName || undefined,
+          recipientEmail: metadata.recipientEmail || undefined,
+          giftCode: redemptionCode,
+          tierName,
+          duration,
+          giftMessage: metadata.giftMessage || undefined,
+        })
+        console.log(`[Webhook] Gift confirmation email sent to purchaser: ${metadata.purchaserEmail}`)
+      } catch (emailError) {
+        console.error('[Webhook] Failed to send purchaser email:', emailError)
+        // Don't throw - email failure shouldn't fail the webhook
+      }
+    }
+
+    // Send gift notification email to recipient if email provided
+    // Check if delivery date is today or in the past (or not specified = immediate)
+    const shouldDeliverNow = !metadata.deliveryDate ||
+      new Date(metadata.deliveryDate) <= new Date()
+
+    if (metadata.recipientEmail && shouldDeliverNow) {
+      try {
+        await sendGiftReceivedEmail(metadata.recipientEmail, {
+          recipientName: metadata.recipientName || 'there',
+          senderName: metadata.purchaserName || 'Someone special',
+          giftMessage: metadata.giftMessage || undefined,
+          giftCode: redemptionCode,
+          tierName,
+          duration,
+        })
+        console.log(`[Webhook] Gift notification email sent to recipient: ${metadata.recipientEmail}`)
+      } catch (emailError) {
+        console.error('[Webhook] Failed to send recipient email:', emailError)
+        // Don't throw - email failure shouldn't fail the webhook
+      }
+    } else if (metadata.recipientEmail && metadata.deliveryDate) {
+      console.log(`[Webhook] Gift will be delivered on ${metadata.deliveryDate}`)
+      // TODO: Implement scheduled delivery via cron job or queue
+    }
   } catch (error) {
     captureError(error as Error, {
       action: 'handle_gift_purchase',
