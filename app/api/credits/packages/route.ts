@@ -1,13 +1,22 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { captureError } from '@/lib/monitoring/sentry';
+import { checkRateLimit, rateLimitResponse, getClientIP } from '@/lib/rate-limit';
+import { logger } from '@/lib/logging';
 
 // =============================================================================
 // GET /api/credits/packages - Get available credit packages
 // =============================================================================
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    // Rate limit by IP for public endpoint
+    const clientIP = getClientIP(request);
+    const rateLimit = await checkRateLimit(clientIP, 'apiGeneral');
+    if (!rateLimit.success) {
+      return rateLimitResponse(rateLimit);
+    }
+
     const { data: packages, error } = await supabaseAdmin
       .from('credit_packages')
       .select('*')
@@ -38,6 +47,7 @@ export async function GET() {
       packages: formattedPackages,
     });
   } catch (error) {
+    logger.error('Error fetching credit packages', error);
     captureError(error as Error, { action: 'get_credit_packages' });
     return NextResponse.json(
       { error: 'Failed to fetch credit packages' },

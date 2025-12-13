@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { packageId, credits, priceInCents, name } = body;
+    const { packageId } = body;
+    // SECURITY: We only accept packageId - pricing comes from database only
 
     if (!packageId) {
       return NextResponse.json(
@@ -53,41 +54,29 @@ export async function POST(request: NextRequest) {
       currency: string;
     }
 
-    // Try to get package from database first, fall back to request data
-    let pkg: CreditPackage;
-
-    const { data: dbPkg } = await supabaseAdmin
+    // SECURITY: Only get package from database - never accept client-provided pricing
+    const { data: dbPkg, error: pkgError } = await supabaseAdmin
       .from('credit_packages')
       .select('*')
       .eq('id', packageId)
       .eq('is_active', true)
       .single();
 
-    if (dbPkg) {
-      pkg = {
-        id: dbPkg.id,
-        name: dbPkg.name,
-        credits: dbPkg.credits,
-        bonus_credits: dbPkg.bonus_credits ?? 0,
-        price_cents: dbPkg.price_cents,
-        currency: dbPkg.currency ?? 'usd',
-      };
-    } else if (credits && priceInCents && name) {
-      // Use hardcoded package data from request
-      pkg = {
-        id: packageId,
-        name: name,
-        credits: credits,
-        bonus_credits: 0,
-        price_cents: priceInCents,
-        currency: 'usd',
-      };
-    } else {
+    if (pkgError || !dbPkg) {
       return NextResponse.json(
-        { error: 'Credit package not found and no fallback data provided' },
+        { error: 'Credit package not found or inactive' },
         { status: 404 }
       );
     }
+
+    const pkg: CreditPackage = {
+      id: dbPkg.id,
+      name: dbPkg.name,
+      credits: dbPkg.credits,
+      bonus_credits: dbPkg.bonus_credits ?? 0,
+      price_cents: dbPkg.price_cents,
+      currency: dbPkg.currency ?? 'usd',
+    };
 
     const stripe = getStripe();
 

@@ -22,6 +22,7 @@ interface StoryConfig {
   tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
   length: 'quick' | 'medium' | 'epic'
   characterIds?: string[]
+  originalInput?: string
 }
 
 interface ParsedStoryRequest {
@@ -136,6 +137,7 @@ export default function CreateStoryPage() {
       tone: parsed.tone,
       length: parsed.length,
       characterIds: parsed.suggestedCharacters?.map(c => c.id),
+      originalInput: parsed.originalInput, // Pass the full original request for better personalization
     }
 
     await handleGenerate(children, config)

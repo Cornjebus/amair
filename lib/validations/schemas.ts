@@ -118,8 +118,12 @@ export const StorySchema = z.object({
   createdAt: z.string().datetime(),
 });
 
+// SECURITY: Strict limits on user input to prevent prompt injection and excessive token usage
 export const CreateStoryRequestSchema = z.object({
-  childName: z.string().min(1, 'Child name is required').max(50),
+  childName: z.string()
+    .min(1, 'Child name is required')
+    .max(50, 'Child name too long')
+    .regex(/^[a-zA-Z\s'-]+$/, 'Child name contains invalid characters'),
   childAge: ChildAgeSchema,
   theme: StoryThemeSchema,
   mood: StoryMoodSchema,
@@ -128,7 +132,13 @@ export const CreateStoryRequestSchema = z.object({
   includeNarration: z.boolean().default(false),
   includeVideo: z.boolean().default(false),
   illustrationStyle: IllustrationStyleSchema.optional(),
-  customElements: z.array(z.string().max(100)).max(5).optional(),
+  // SECURITY: Strict limits on custom elements to prevent prompt injection
+  customElements: z.array(
+    z.string()
+      .min(1)
+      .max(100, 'Custom element too long')
+      .regex(/^[a-zA-Z0-9\s,.'!?-]+$/, 'Custom element contains invalid characters')
+  ).max(5, 'Maximum 5 custom elements').optional(),
   characterId: z.string().uuid().optional(), // For character consistency
 });
 

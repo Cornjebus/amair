@@ -1,15 +1,73 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { logger } from '@/lib/logging';
 
 // =============================================================================
 // Rate Limiting Configuration with Upstash Redis
 // =============================================================================
+// SECURITY: Implements fail-CLOSED behavior - when Redis is unavailable,
+// requests are denied to prevent abuse during outages.
 
 // Check if Upstash is configured
 export const isRateLimitingEnabled = !!(
   process.env.UPSTASH_REDIS_REST_URL &&
   process.env.UPSTASH_REDIS_REST_TOKEN
 );
+
+// In-memory fallback rate limiter for when Redis is unavailable
+// Uses a simple sliding window with Map storage
+class InMemoryRateLimiter {
+  private requests: Map<string, { count: number; resetTime: number }> = new Map();
+  private readonly maxRequests: number;
+  private readonly windowMs: number;
+
+  constructor(maxRequests: number, windowMs: number) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+
+    // Cleanup expired entries every minute
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => this.cleanup(), 60000);
+    }
+  }
+
+  async checkLimit(identifier: string): Promise<{ success: boolean; limit: number; remaining: number; reset: number }> {
+    const now = Date.now();
+    const entry = this.requests.get(identifier);
+
+    if (!entry || now > entry.resetTime) {
+      // New window
+      this.requests.set(identifier, { count: 1, resetTime: now + this.windowMs });
+      return { success: true, limit: this.maxRequests, remaining: this.maxRequests - 1, reset: now + this.windowMs };
+    }
+
+    if (entry.count >= this.maxRequests) {
+      return { success: false, limit: this.maxRequests, remaining: 0, reset: entry.resetTime };
+    }
+
+    entry.count++;
+    return { success: true, limit: this.maxRequests, remaining: this.maxRequests - entry.count, reset: entry.resetTime };
+  }
+
+  private cleanup(): void {
+    const now = Date.now();
+    for (const [key, value] of this.requests.entries()) {
+      if (now > value.resetTime) {
+        this.requests.delete(key);
+      }
+    }
+  }
+}
+
+// Fallback limiters (more restrictive than Redis-based ones for safety)
+const fallbackLimiters = {
+  storyGeneration: new InMemoryRateLimiter(5, 60000), // 5 per minute (reduced from 10)
+  imageGeneration: new InMemoryRateLimiter(10, 60000), // 10 per minute (reduced from 20)
+  audioGeneration: new InMemoryRateLimiter(8, 60000), // 8 per minute (reduced from 15)
+  videoGeneration: new InMemoryRateLimiter(2, 3600000), // 2 per hour (reduced from 5)
+  giftRedemption: new InMemoryRateLimiter(3, 3600000), // 3 per hour (reduced from 5)
+  apiGeneral: new InMemoryRateLimiter(50, 60000), // 50 per minute (reduced from 100)
+};
 
 // Initialize Redis client (only if configured)
 const redis = isRateLimitingEnabled
@@ -85,30 +143,37 @@ export interface RateLimitResult {
 
 /**
  * Check rate limit for a given identifier and limiter type
- * Returns success: true if rate limiting is not configured (fail open)
+ * SECURITY: Implements fail-CLOSED behavior - uses in-memory fallback when Redis unavailable
  */
 export async function checkRateLimit(
   identifier: string,
   type: RateLimiterType = 'apiGeneral'
 ): Promise<RateLimitResult> {
-  // If rate limiting is not configured, allow all requests
+  // If Redis rate limiting is not configured, use in-memory fallback
   if (!rateLimiters) {
+    logger.warn('Redis rate limiting not configured, using in-memory fallback', { type });
+    const fallback = fallbackLimiters[type];
+    const result = await fallback.checkLimit(identifier);
     return {
-      success: true,
-      limit: 999,
-      remaining: 999,
-      reset: 0,
+      success: result.success,
+      limit: result.limit,
+      remaining: result.remaining,
+      reset: result.reset,
+      retryAfter: result.success ? undefined : Math.ceil((result.reset - Date.now()) / 1000),
     };
   }
 
   const limiter = rateLimiters[type];
   if (!limiter) {
-    console.warn(`[rate-limit] Unknown limiter type: ${type}`);
+    logger.warn('Unknown limiter type, using apiGeneral fallback', { type });
+    const fallback = fallbackLimiters.apiGeneral;
+    const result = await fallback.checkLimit(identifier);
     return {
-      success: true,
-      limit: 999,
-      remaining: 999,
-      reset: 0,
+      success: result.success,
+      limit: result.limit,
+      remaining: result.remaining,
+      reset: result.reset,
+      retryAfter: result.success ? undefined : Math.ceil((result.reset - Date.now()) / 1000),
     };
   }
 
@@ -123,13 +188,16 @@ export async function checkRateLimit(
       retryAfter: result.success ? undefined : Math.ceil((result.reset - Date.now()) / 1000),
     };
   } catch (error) {
-    console.error('[rate-limit] Error checking rate limit:', error);
-    // Fail open on error - allow the request
+    // SECURITY: Fail CLOSED - use fallback limiter when Redis errors
+    logger.error('Redis rate limit error, falling back to in-memory limiter', error, { type, identifier });
+    const fallback = fallbackLimiters[type] || fallbackLimiters.apiGeneral;
+    const result = await fallback.checkLimit(identifier);
     return {
-      success: true,
-      limit: 999,
-      remaining: 999,
-      reset: 0,
+      success: result.success,
+      limit: result.limit,
+      remaining: result.remaining,
+      reset: result.reset,
+      retryAfter: result.success ? undefined : Math.ceil((result.reset - Date.now()) / 1000),
     };
   }
 }

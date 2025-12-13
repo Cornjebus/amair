@@ -43,6 +43,7 @@ interface StoryParams {
   config: {
     tone: string;
     length: string;
+    originalInput?: string; // The user's original natural language request
   };
 }
 
@@ -88,23 +89,38 @@ export const generateStoryJob = inngest.createFunction(
 
     // Step 2: Build the prompt
     const prompt = await step.run('build-prompt', async () => {
-      let p = `Create a ${config.tone} bedtime story that includes the following elements:\n\n`;
-      p += `Characters:\n`;
+      let p = '';
+
+      // If we have the original natural language input, use it as primary context
+      if (config.originalInput) {
+        p += `The parent requested: "${config.originalInput}"\n\n`;
+        p += `Create a personalized ${config.tone} bedtime story based on this request.\n\n`;
+      } else {
+        p += `Create a ${config.tone} bedtime story with the following elements:\n\n`;
+      }
+
+      p += `Main Character(s):\n`;
       children.forEach((child) => {
         const pronouns = child.gender === 'girl' ? 'she/her' : child.gender === 'boy' ? 'he/him' : 'they/them';
-        p += `- ${child.name} (${pronouns}): ${child.items.join(', ')}\n`;
+        p += `- ${child.name} (${pronouns})`;
+        if (child.items && child.items.length > 0) {
+          p += ` - Include these elements: ${child.items.join(', ')}`;
+        }
+        p += '\n';
       });
+
       p += `\n${getToneInstructions(config.tone)}\n`;
       p += `${getLengthInstructions(config.length)}\n\n`;
-      p += `The story should:\n`;
-      p += `- Include ALL the special things naturally in the narrative\n`;
-      p += `- Feature ${children.map((c) => c.name).join(' and ')} as the main character(s)\n`;
-      p += `- Use the correct pronouns for each character as specified above\n`;
-      p += `- Have a clear beginning, middle, and end\n`;
-      p += `- Be appropriate for children ages 3-10\n`;
-      p += `- Include dialogue and descriptive language\n`;
-      p += `- Have a satisfying conclusion\n\n`;
-      p += `Please provide:\n1. A creative title\n2. The complete story`;
+
+      p += `IMPORTANT - Personalization Requirements:\n`;
+      p += `- Make ${children.map((c) => c.name).join(' and ')} the HERO of the story - use their name frequently\n`;
+      p += `- Include ALL specific details mentioned (pet names, favorite things, places, etc.) as key story elements\n`;
+      p += `- Use the correct pronouns for each character\n`;
+      p += `- Make the child feel special and brave in the story\n`;
+      p += `- Include vivid, age-appropriate descriptions and dialogue\n`;
+      p += `- Create a satisfying, heartwarming conclusion\n\n`;
+
+      p += `Please provide:\n1. A creative, personalized title that includes the child's name\n2. The complete story`;
       return p;
     });
 
@@ -119,15 +135,15 @@ export const generateStoryJob = inngest.createFunction(
         .eq('id', jobId);
     });
 
-    // Step 4: Generate story with OpenAI
+    // Step 4: Generate story with OpenAI GPT-5 mini
     const storyResponse = await step.run('generate-with-openai', async () => {
       const client = getOpenAIClient();
       const completion = await client.chat.completions.create({
-        model: 'gpt-4-turbo-preview',
+        model: 'gpt-5-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are Amari, a magical bedtime storyteller who creates warm, imaginative, and family-friendly stories for children. Your stories are creative, engaging, and always include all the elements requested.',
+            content: 'You are Amari, a magical bedtime storyteller who creates warm, imaginative, and family-friendly stories for children. Your stories are creative, engaging, and always include all the elements requested. You personalize each story with the specific details provided about the child.',
           },
           {
             role: 'user',
@@ -135,7 +151,7 @@ export const generateStoryJob = inngest.createFunction(
           },
         ],
         temperature: 0.9,
-        max_tokens: 2000,
+        max_tokens: 3000,
       });
 
       return completion.choices[0].message.content || '';
