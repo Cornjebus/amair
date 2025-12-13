@@ -21,21 +21,13 @@ interface ChildData {
 interface StoryConfig {
   tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
   length: 'quick' | 'medium' | 'epic'
-  characterIds?: string[]
-  originalInput?: string
+  storyDescription?: string // The user's natural language description
 }
 
-interface ParsedStoryRequest {
-  childName: string
-  childAge?: number
-  gender?: 'boy' | 'girl' | 'other'
-  theme: string
+interface StoryRequest {
+  storyDescription: string
   tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
   length: 'quick' | 'medium' | 'epic'
-  customElements: string[]
-  suggestedCharacters?: Array<{ id: string; name: string }>
-  confidence: number
-  originalInput: string
 }
 
 interface JobStatus {
@@ -63,7 +55,6 @@ export default function CreateStoryPage() {
   const [jobId, setJobId] = useState<string | null>(null)
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
   const [messageIndex, setMessageIndex] = useState(0)
-  const [parsedRequest, setParsedRequest] = useState<ParsedStoryRequest | null>(null)
 
   // Rotate through fun progress messages
   useEffect(() => {
@@ -123,24 +114,17 @@ export default function CreateStoryPage() {
     return () => clearInterval(interval)
   }, [jobId, pollJobStatus])
 
-  // Handle generation from natural language input
-  const handleNaturalGenerate = async (parsed: ParsedStoryRequest) => {
-    // Convert parsed request to children/config format
-    const children: ChildData[] = [{
-      name: parsed.childName,
-      gender: parsed.gender || 'other',
-      itemCount: parsed.customElements.length || 3,
-      items: parsed.customElements.length > 0 ? parsed.customElements : ['magic', 'adventure', 'friendship'],
-    }]
-
+  // Handle generation from natural language input - simplified version
+  const handleNaturalGenerate = async (request: StoryRequest) => {
+    // Pass the raw story description directly - no parsing needed
     const config: StoryConfig = {
-      tone: parsed.tone,
-      length: parsed.length,
-      characterIds: parsed.suggestedCharacters?.map(c => c.id),
-      originalInput: parsed.originalInput, // Pass the full original request for better personalization
+      tone: request.tone,
+      length: request.length,
+      storyDescription: request.storyDescription,
     }
 
-    await handleGenerate(children, config)
+    // Use empty children array since we're using storyDescription directly
+    await handleGenerate([], config)
   }
 
   const handleGenerate = async (children: ChildData[], config: StoryConfig) => {
@@ -189,7 +173,6 @@ export default function CreateStoryPage() {
     setError(null)
     setJobId(null)
     setJobStatus(null)
-    setParsedRequest(null)
   }
 
   const CurrentIcon = progressMessages[messageIndex].icon
@@ -298,7 +281,6 @@ export default function CreateStoryPage() {
                   exit={{ opacity: 0, x: 20 }}
                 >
                   <NaturalInput
-                    onParsed={setParsedRequest}
                     onGenerate={handleNaturalGenerate}
                     isGenerating={isGenerating}
                   />

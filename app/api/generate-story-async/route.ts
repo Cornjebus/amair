@@ -17,7 +17,7 @@ interface ChildData {
 interface StoryConfig {
   tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery';
   length: 'quick' | 'medium' | 'epic';
-  originalInput?: string;
+  storyDescription?: string; // Direct natural language description from user
 }
 
 // =============================================================================
@@ -88,9 +88,9 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { children, config }: { children: ChildData[]; config: StoryConfig } = body;
 
-    // Validate input
-    if (!children || children.length === 0) {
-      return NextResponse.json({ error: 'At least one child is required' }, { status: 400 });
+    // Validate input - either need children OR storyDescription
+    if ((!children || children.length === 0) && !config?.storyDescription) {
+      return NextResponse.json({ error: 'Please provide a story description or child details' }, { status: 400 });
     }
 
     if (!config?.tone || !config?.length) {

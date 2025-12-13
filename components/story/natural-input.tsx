@@ -1,49 +1,56 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Sparkles, Loader2, Wand2 } from 'lucide-react'
+import { Sparkles, Loader2, Wand2, Moon, Laugh, Compass, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { motion } from 'framer-motion'
 
-interface ParsedStoryRequest {
-  childName: string
-  childAge?: number
-  gender?: 'boy' | 'girl' | 'other'
-  theme: string
+interface StoryRequest {
+  storyDescription: string
   tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
   length: 'quick' | 'medium' | 'epic'
-  customElements: string[]
-  suggestedCharacters?: Array<{ id: string; name: string }>
-  confidence: number
-  originalInput: string
 }
 
 interface NaturalInputProps {
-  onParsed: (parsed: ParsedStoryRequest) => void
-  onGenerate: (parsed: ParsedStoryRequest) => void
+  onGenerate: (request: StoryRequest) => void
   isGenerating?: boolean
 }
 
+const toneOptions = [
+  { value: 'bedtime-calm', label: 'Bedtime Calm', icon: Moon, description: 'Gentle and soothing' },
+  { value: 'funny', label: 'Funny', icon: Laugh, description: 'Silly and playful' },
+  { value: 'adventure', label: 'Adventure', icon: Compass, description: 'Exciting and brave' },
+  { value: 'mystery', label: 'Mystery', icon: Search, description: 'Curious and intriguing' },
+]
+
+const lengthOptions = [
+  { value: 'quick', label: 'Quick', description: '2-3 minutes' },
+  { value: 'medium', label: 'Medium', description: '5 minutes' },
+  { value: 'epic', label: 'Epic', description: '10 minutes' },
+]
+
 const suggestionChips = [
   'A bedtime story about Emma and a magical unicorn',
-  'A funny adventure with dragons and dinosaurs',
-  'A mystery story for Max in a spooky castle',
-  'A calm story about friendly forest animals',
-  'An epic adventure with pirates and treasure',
-  'A story about my daughter and butterflies',
+  'My son Jake and his pet dragon go on an adventure',
+  'A mystery story for Lily in an enchanted forest',
+  'A funny story about Max and his silly cat',
+  'My daughter Sofia discovers a secret garden',
+  'A story about twins who find a magic map',
 ]
 
 const placeholderExamples = [
-  'Tell me a bedtime story about Lily and a magical garden...',
-  'A funny adventure where Max meets a silly dragon...',
-  'My daughter Emma wants a story about unicorns and rainbows...',
-  'A mystery story for Jake in an enchanted forest...',
+  'A bedtime story about my daughter Amari and her brother Cornelius...',
+  'My son Jake wants a story about dinosaurs and rockets...',
+  'A magical adventure for Emma with unicorns and rainbows...',
+  'A funny story about my kids Max and Lily finding a treasure...',
 ]
 
-export function NaturalInput({ onParsed, onGenerate, isGenerating }: NaturalInputProps) {
+export function NaturalInput({ onGenerate, isGenerating }: NaturalInputProps) {
   const [input, setInput] = useState('')
-  const [isParsing, setIsParsing] = useState(false)
-  const [parsed, setParsed] = useState<ParsedStoryRequest | null>(null)
+  const [tone, setTone] = useState<'bedtime-calm' | 'funny' | 'adventure' | 'mystery'>('bedtime-calm')
+  const [length, setLength] = useState<'quick' | 'medium' | 'epic'>('medium')
   const [placeholder, setPlaceholder] = useState(placeholderExamples[0])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -66,47 +73,21 @@ export function NaturalInput({ onParsed, onGenerate, isGenerating }: NaturalInpu
     }
   }, [input])
 
-  // Parse input when it changes (debounced)
-  useEffect(() => {
-    if (input.length < 10) {
-      setParsed(null)
-      return
-    }
-
-    const timeout = setTimeout(async () => {
-      setIsParsing(true)
-      try {
-        const response = await fetch('/api/parse-story-request', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ input }),
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setParsed(data.parsed)
-          onParsed(data.parsed)
-        }
-      } catch (error) {
-        console.error('Error parsing input:', error)
-      } finally {
-        setIsParsing(false)
-      }
-    }, 500)
-
-    return () => clearTimeout(timeout)
-  }, [input, onParsed])
-
-const handleChipClick = (suggestion: string) => {
+  const handleChipClick = (suggestion: string) => {
     setInput(suggestion)
     textareaRef.current?.focus()
   }
 
   const handleGenerate = () => {
-    if (parsed) {
-      onGenerate(parsed)
-    }
+    if (input.trim().length < 10) return
+    onGenerate({
+      storyDescription: input.trim(),
+      tone,
+      length,
+    })
   }
+
+  const canGenerate = input.trim().length >= 10
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6">
@@ -128,17 +109,9 @@ const handleChipClick = (suggestion: string) => {
 
           {/* Bottom toolbar */}
           <div className="flex items-center justify-between px-4 py-3 bg-amari-sand/30 border-t border-amari-sand">
-            <div className="flex items-center gap-2">
-              {/* Parsing indicator */}
-              {isParsing && (
-                <div className="flex items-center text-amari-muted text-sm">
-                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                  Parsing...
-                </div>
-              )}
-            </div>
-
-            {/* Character count */}
+            <p className="text-sm text-amari-muted">
+              Describe your story with names, characters, and themes
+            </p>
             <span className="text-sm text-amari-muted">
               {input.length} characters
             </span>
@@ -160,7 +133,7 @@ const handleChipClick = (suggestion: string) => {
               key={suggestion}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: index * 0.05 }}
               onClick={() => handleChipClick(suggestion)}
               className="px-4 py-2 text-sm bg-white border border-amari-sand rounded-full text-amari-charcoal hover:bg-amari-sand/50 hover:border-amari-terracotta/50 transition-all hover:shadow-md"
             >
@@ -170,102 +143,89 @@ const handleChipClick = (suggestion: string) => {
         </div>
       </div>
 
-      {/* Extraction Preview */}
-      <AnimatePresence>
-        {parsed && parsed.confidence > 0.3 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-amari-sage/10 rounded-2xl p-6 border-2 border-amari-sage/30"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="h-5 w-5 text-amari-sage" />
-              <h3 className="font-semibold text-amari-charcoal">Story Preview</h3>
-              <span className="ml-auto text-sm text-amari-muted">
-                {Math.round(parsed.confidence * 100)}% confident
-              </span>
-            </div>
+      {/* Story Settings */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="bg-amari-sage/10 rounded-2xl p-6 border-2 border-amari-sage/30"
+      >
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="h-5 w-5 text-amari-sage" />
+          <h3 className="font-semibold text-amari-charcoal">Story Settings</h3>
+        </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <span className="text-xs text-amari-muted uppercase">Hero</span>
-                <p className="font-medium text-amari-charcoal">{parsed.childName}</p>
-              </div>
-              <div>
-                <span className="text-xs text-amari-muted uppercase">Tone</span>
-                <p className="font-medium text-amari-charcoal capitalize">{parsed.tone.replace('-', ' ')}</p>
-              </div>
-              <div>
-                <span className="text-xs text-amari-muted uppercase">Length</span>
-                <p className="font-medium text-amari-charcoal capitalize">{parsed.length}</p>
-              </div>
-              <div>
-                <span className="text-xs text-amari-muted uppercase">Theme</span>
-                <p className="font-medium text-amari-charcoal">{parsed.theme}</p>
-              </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          {/* Tone Selection */}
+          <div className="space-y-2">
+            <Label className="text-amari-charcoal">Story Tone</Label>
+            <Select value={tone} onValueChange={(v) => setTone(v as typeof tone)}>
+              <SelectTrigger className="bg-white border-amari-sand">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {toneOptions.map((option) => {
+                  const Icon = option.icon
+                  return (
+                    <SelectItem key={option.value} value={option.value}>
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-4 w-4 text-amari-sage" />
+                        <span>{option.label}</span>
+                        <span className="text-amari-muted text-xs">- {option.description}</span>
+                      </div>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
 
-            {parsed.customElements.length > 0 && (
-              <div className="mb-4">
-                <span className="text-xs text-amari-muted uppercase">Magical Elements</span>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {parsed.customElements.map((element) => (
-                    <span
-                      key={element}
-                      className="px-2 py-1 bg-white rounded-full text-sm text-amari-charcoal border border-amari-sand"
-                    >
-                      {element}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+          {/* Length Selection */}
+          <div className="space-y-2">
+            <Label className="text-amari-charcoal">Story Length</Label>
+            <Select value={length} onValueChange={(v) => setLength(v as typeof length)}>
+              <SelectTrigger className="bg-white border-amari-sand">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {lengthOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <div className="flex items-center gap-2">
+                      <span>{option.label}</span>
+                      <span className="text-amari-muted text-xs">({option.description})</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-            {parsed.suggestedCharacters && parsed.suggestedCharacters.length > 0 && (
-              <div className="mb-4">
-                <span className="text-xs text-amari-muted uppercase">Matched Characters</span>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {parsed.suggestedCharacters.map((char) => (
-                    <span
-                      key={char.id}
-                      className="px-2 py-1 bg-amari-rose/20 rounded-full text-sm text-amari-charcoal border border-amari-rose/30"
-                    >
-                      {char.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+        <Button
+          onClick={handleGenerate}
+          disabled={isGenerating || !canGenerate}
+          className="w-full"
+          size="lg"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Creating Magic...
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-5 w-5" />
+              Generate Story
+            </>
+          )}
+        </Button>
 
-            <Button
-              onClick={handleGenerate}
-              disabled={isGenerating}
-              className="w-full"
-              size="lg"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Creating Magic...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Generate Story
-                </>
-              )}
-            </Button>
-          </motion.div>
+        {!canGenerate && input.length > 0 && (
+          <p className="text-center text-amari-muted text-sm mt-2">
+            Please add more details (at least 10 characters)
+          </p>
         )}
-      </AnimatePresence>
-
-      {/* Help text when no input */}
-      {!input && (
-        <p className="text-center text-amari-muted text-sm">
-          Just describe the story you want, and our AI will figure out the rest!
-        </p>
-      )}
+      </motion.div>
     </div>
   )
 }
