@@ -23,9 +23,9 @@ const ageOptions = [
 ]
 
 const lengthOptions = [
-  { value: 'short', label: 'Short', description: '2-3 minutes' },
+  { value: 'quick', label: 'Quick', description: '2-3 minutes' },
   { value: 'medium', label: 'Medium', description: '5 minutes' },
-  { value: 'long', label: 'Long', description: '10 minutes' },
+  { value: 'epic', label: 'Epic', description: '10 minutes' },
 ]
 
 const styleOptions = [

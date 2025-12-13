@@ -41,9 +41,9 @@ function buildStoryPrompt(params: {
 
   // Map length to word count guidance
   const lengthGuidance: Record<string, string> = {
-    'short': 'Write approximately 300-400 words (2-3 minute read). Get to the heart of the story quickly.',
+    'quick': 'Write approximately 300-400 words (2-3 minute read). Get to the heart of the story quickly.',
     'medium': 'Write approximately 600-800 words (5 minute read). Allow time for setting and character moments.',
-    'long': 'Write approximately 1000-1200 words (10 minute read). Include rich details, dialogue, and a well-developed arc.',
+    'epic': 'Write approximately 1000-1200 words (10 minute read). Include rich details, dialogue, and a well-developed arc.',
   }
 
   // Map style to narrative approach
