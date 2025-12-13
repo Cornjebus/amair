@@ -200,14 +200,15 @@ export async function POST(req: Request) {
     }
 
     // Map legacy length values to database enum (quick/medium/epic)
-    const lengthMap: Record<string, string> = {
+    type StoryLength = 'quick' | 'medium' | 'epic'
+    const lengthMap: Record<string, StoryLength> = {
       'short': 'quick',
       'long': 'epic',
       'quick': 'quick',
       'medium': 'medium',
       'epic': 'epic',
     }
-    const dbLength = lengthMap[length] || 'medium'
+    const dbLength: StoryLength = lengthMap[length] || 'medium'
 
     // Build the robust prompt
     const prompt = buildStoryPrompt({
@@ -225,13 +226,18 @@ export async function POST(req: Request) {
     let modelUsed = 'gpt-5-mini'
 
     try {
+      // GPT-5 mini needs extra tokens for reasoning (uses ~20-30% for internal reasoning)
       const completion = await openai.chat.completions.create({
         model: 'gpt-5-mini',
         messages: [{ role: 'user', content: prompt }],
-        max_completion_tokens: 2000,
+        max_completion_tokens: 8000, // Extra tokens for reasoning models
       })
       responseText = completion.choices[0]?.message?.content
-      console.log('[generate-story] GPT-5 mini response received')
+
+      if (!responseText || responseText.trim().length < 50) {
+        throw new Error('GPT-5 mini returned empty or too short response')
+      }
+      console.log('[generate-story] GPT-5 mini response received, length:', responseText.length)
     } catch (gpt5Error: any) {
       console.error('[generate-story] GPT-5 mini failed, trying GPT-4o:', gpt5Error.message)
       modelUsed = 'gpt-4o'
@@ -240,11 +246,11 @@ export async function POST(req: Request) {
       const completion = await openai.chat.completions.create({
         model: 'gpt-4o',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 2000,
+        max_tokens: 2500,
         temperature: 0.8,
       })
       responseText = completion.choices[0]?.message?.content
-      console.log('[generate-story] GPT-4o response received')
+      console.log('[generate-story] GPT-4o response received, length:', responseText?.length || 0)
     }
 
     if (!responseText) {
@@ -303,8 +309,18 @@ export async function POST(req: Request) {
     })
   } catch (err: any) {
     console.error('[generate-story] Error:', err)
+
+    // Ensure we always return valid JSON, never HTML
+    const errorMessage = err.message || 'Failed to generate story'
+    const isOpenAIError = errorMessage.includes('OpenAI') || errorMessage.includes('API') || err.status
+
     return NextResponse.json(
-      { error: err.message || 'Failed to generate story' },
+      {
+        error: isOpenAIError
+          ? 'Our story service is temporarily busy. Please try again in a moment.'
+          : errorMessage,
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      },
       { status: 500 }
     )
   }
