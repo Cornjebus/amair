@@ -1,322 +1,284 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { StoryWizard } from '@/components/story/story-wizard'
-import { StoryDisplay } from '@/components/story/story-display'
-import { NaturalInput } from '@/components/story/natural-input'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Sparkles, BookOpen, Wand2, Stars, MessageSquare, ListChecks } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Sparkles, Loader2, Wand2, Moon, Laugh, Compass, Search, BookOpen } from 'lucide-react'
+import { StoryDisplay } from '@/components/story/story-display'
 
-type InputMode = 'natural' | 'wizard'
+// Story options
+const toneOptions = [
+  { value: 'bedtime-calm', label: 'Bedtime Calm', icon: Moon, description: 'Gentle and soothing for sleep' },
+  { value: 'funny', label: 'Funny', icon: Laugh, description: 'Silly and playful laughs' },
+  { value: 'adventure', label: 'Adventure', icon: Compass, description: 'Exciting and brave' },
+  { value: 'mystery', label: 'Mystery', icon: Search, description: 'Curious and intriguing' },
+]
 
-interface ChildData {
-  name: string
-  gender: 'boy' | 'girl' | 'other'
-  itemCount: number
-  items: string[]
-}
+const ageOptions = [
+  { value: '2-4', label: '2-4 years', description: 'Simple words, short sentences' },
+  { value: '5-7', label: '5-7 years', description: 'More detail, fun vocabulary' },
+  { value: '8-10', label: '8-10 years', description: 'Rich stories, complex plots' },
+]
 
-interface StoryConfig {
-  tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
-  length: 'quick' | 'medium' | 'epic'
-  storyDescription?: string // The user's natural language description
-}
+const lengthOptions = [
+  { value: 'short', label: 'Short', description: '2-3 minutes' },
+  { value: 'medium', label: 'Medium', description: '5 minutes' },
+  { value: 'long', label: 'Long', description: '10 minutes' },
+]
 
-interface StoryRequest {
-  storyDescription: string
-  tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery'
-  length: 'quick' | 'medium' | 'epic'
-}
+const styleOptions = [
+  { value: 'classic', label: 'Classic Fairytale', description: 'Once upon a time...' },
+  { value: 'modern', label: 'Modern Adventure', description: 'Contemporary setting' },
+  { value: 'fantasy', label: 'Fantasy World', description: 'Magic and wonder' },
+  { value: 'animal', label: 'Animal Friends', description: 'Talking animals' },
+]
 
-interface JobStatus {
-  id: string
-  status: 'pending' | 'generating' | 'completed' | 'failed'
-  progress: number
-  message: string
-  story?: any
-  errorMessage?: string
-}
-
-const progressMessages = [
-  { icon: Wand2, text: 'Gathering magical ingredients...' },
-  { icon: Sparkles, text: 'Sprinkling imagination dust...' },
-  { icon: Stars, text: 'Weaving dreams together...' },
-  { icon: BookOpen, text: 'Writing your adventure...' },
+const suggestionChips = [
+  'A story about my daughter Amari and her brother Cornelius finding a magic garden',
+  'My son Jake discovers a friendly dragon in his backyard',
+  'A bedtime adventure for Emma and her cat Whiskers',
+  'Twins Max and Lily find a treasure map',
+  'A story about Sofia who can talk to butterflies',
 ]
 
 export default function CreateStoryPage() {
   const router = useRouter()
-  const [inputMode, setInputMode] = useState<InputMode>('natural')
+
+  // Form state
+  const [storyRequest, setStoryRequest] = useState('')
+  const [tone, setTone] = useState('bedtime-calm')
+  const [ageGroup, setAgeGroup] = useState('5-7')
+  const [length, setLength] = useState('medium')
+  const [style, setStyle] = useState('classic')
+
+  // Generation state
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedStory, setGeneratedStory] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
-  const [jobId, setJobId] = useState<string | null>(null)
-  const [jobStatus, setJobStatus] = useState<JobStatus | null>(null)
-  const [messageIndex, setMessageIndex] = useState(0)
+  const [generatedStory, setGeneratedStory] = useState<any>(null)
 
-  // Rotate through fun progress messages
-  useEffect(() => {
-    if (!isGenerating) return
-    const interval = setInterval(() => {
-      setMessageIndex((prev) => (prev + 1) % progressMessages.length)
-    }, 3000)
-    return () => clearInterval(interval)
-  }, [isGenerating])
+  const canGenerate = storyRequest.trim().length >= 10
 
-  // Poll for job status
-  const pollJobStatus = useCallback(async (id: string) => {
-    try {
-      const response = await fetch(`/api/jobs/${id}`)
-      const data = await response.json()
+  const handleGenerate = async () => {
+    if (!canGenerate) return
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to get job status')
-      }
-
-      setJobStatus(data)
-
-      if (data.status === 'completed' && data.story) {
-        setGeneratedStory(data.story)
-        setIsGenerating(false)
-        setJobId(null)
-      } else if (data.status === 'failed') {
-        setError(data.errorMessage || 'Story generation failed')
-        setIsGenerating(false)
-        setJobId(null)
-      }
-
-      return data
-    } catch (err: any) {
-      console.error('Error polling job status:', err)
-      return null
-    }
-  }, [])
-
-  // Set up polling when we have a job ID
-  useEffect(() => {
-    if (!jobId) return
-
-    const poll = async () => {
-      const status = await pollJobStatus(jobId)
-      if (status?.status === 'completed' || status?.status === 'failed') {
-        return // Stop polling
-      }
-    }
-
-    // Initial poll
-    poll()
-
-    // Poll every 2 seconds
-    const interval = setInterval(poll, 2000)
-
-    return () => clearInterval(interval)
-  }, [jobId, pollJobStatus])
-
-  // Handle generation from natural language input - simplified version
-  const handleNaturalGenerate = async (request: StoryRequest) => {
-    // Pass the raw story description directly - no parsing needed
-    const config: StoryConfig = {
-      tone: request.tone,
-      length: request.length,
-      storyDescription: request.storyDescription,
-    }
-
-    // Use empty children array since we're using storyDescription directly
-    await handleGenerate([], config)
-  }
-
-  const handleGenerate = async (children: ChildData[], config: StoryConfig) => {
     setIsGenerating(true)
     setError(null)
-    setJobStatus(null)
-    setMessageIndex(0)
 
     try {
-      // Use async endpoint
-      const response = await fetch('/api/generate-story-async', {
+      const response = await fetch('/api/generate-story', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ children, config }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storyRequest: storyRequest.trim(),
+          tone,
+          ageGroup,
+          length,
+          style,
+        }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to start story generation')
+        throw new Error(data.error || 'Failed to generate story')
       }
 
-      // Set job ID to start polling
-      setJobId(data.jobId)
-      setJobStatus({
-        id: data.jobId,
-        status: 'pending',
-        progress: 0,
-        message: data.message,
-      })
+      setGeneratedStory(data.story)
     } catch (err: any) {
       console.error('Error generating story:', err)
       setError(err.message)
+    } finally {
       setIsGenerating(false)
     }
   }
 
-  const handleSave = async () => {
-    router.push('/stories')
-  }
-
   const handleCreateAnother = () => {
     setGeneratedStory(null)
+    setStoryRequest('')
     setError(null)
-    setJobId(null)
-    setJobStatus(null)
   }
 
-  const CurrentIcon = progressMessages[messageIndex].icon
+  // Show the generated story
+  if (generatedStory) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="mb-8 flex items-center justify-between">
+          <Button onClick={handleCreateAnother} variant="outline" size="lg">
+            <Sparkles className="mr-2 h-5 w-5" />
+            Create Another Story
+          </Button>
+          <Button onClick={() => router.push('/stories')} variant="outline" size="lg">
+            <BookOpen className="mr-2 h-5 w-5" />
+            My Stories
+          </Button>
+        </div>
+        <StoryDisplay story={generatedStory} />
+      </div>
+    )
+  }
 
   return (
-    <div className="max-w-6xl mx-auto py-8">
-      {!generatedStory ? (
-        <>
-          <div className="mb-8 text-center">
-            <h1 className="text-4xl md:text-5xl font-display font-semibold text-amari-charcoal mb-4">
-              Create a Magical Story
-            </h1>
-            <p className="text-lg text-amari-muted mb-6">
-              Let's weave imagination into a bedtime adventure
-            </p>
+    <div className="max-w-3xl mx-auto py-8 px-4">
+      {/* Header */}
+      <div className="text-center mb-8">
+        <div className="inline-flex items-center justify-center p-3 bg-amari-terracotta/10 rounded-full mb-4">
+          <Wand2 className="h-8 w-8 text-amari-terracotta" />
+        </div>
+        <h1 className="text-3xl font-display font-semibold text-amari-charcoal mb-2">
+          Create a Magical Story
+        </h1>
+        <p className="text-amari-muted">
+          Describe your story and we'll bring it to life
+        </p>
+      </div>
 
-            {/* Input Mode Toggle */}
-            <div className="inline-flex items-center p-1 bg-amari-sand rounded-full">
-              <button
-                onClick={() => setInputMode('natural')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-                  inputMode === 'natural'
-                    ? 'bg-white shadow-md text-amari-charcoal'
-                    : 'text-amari-muted hover:text-amari-charcoal'
-                }`}
-              >
-                <MessageSquare className="h-4 w-4" />
-                <span className="text-sm font-medium">Just Describe It</span>
-              </button>
-              <button
-                onClick={() => setInputMode('wizard')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
-                  inputMode === 'wizard'
-                    ? 'bg-white shadow-md text-amari-charcoal'
-                    : 'text-amari-muted hover:text-amari-charcoal'
-                }`}
-              >
-                <ListChecks className="h-4 w-4" />
-                <span className="text-sm font-medium">Step-by-Step</span>
-              </button>
-            </div>
-          </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl text-red-700">
-              <p className="font-medium">Error: {error}</p>
-              {(error.includes('limit') || error.includes('stories')) && (
-                <p className="text-sm mt-2">
-                  You've reached your monthly story limit.{' '}
-                  <a href="/pricing" className="underline font-medium">
-                    Upgrade your plan
-                  </a>{' '}
-                  to create more magical stories!
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Progress UI - Show INSTEAD of wizard when generating */}
-          {isGenerating ? (
-            <div className="max-w-2xl mx-auto p-8 bg-amari-sage/10 border-2 border-amari-sage/30 rounded-3xl">
-              <div className="text-center">
-                {/* Animated Icon */}
-                <div className="relative inline-flex items-center justify-center mb-6">
-                  <div className="absolute w-20 h-20 rounded-full bg-amari-sage/20 animate-ping opacity-25" />
-                  <div className="relative p-4 bg-white rounded-full shadow-lg">
-                    <CurrentIcon className="h-10 w-10 text-amari-sage animate-pulse" />
-                  </div>
-                </div>
-
-                {/* Progress Message */}
-                <h3 className="text-2xl font-display font-semibold text-amari-charcoal mb-2">
-                  {progressMessages[messageIndex].text}
-                </h3>
-                <p className="text-amari-muted mb-6">
-                  {jobStatus?.message || 'Creating something special...'}
-                </p>
-
-                {/* Progress Bar */}
-                <div className="max-w-md mx-auto">
-                  <div className="flex justify-between text-sm text-amari-muted mb-2">
-                    <span>Progress</span>
-                    <span>{jobStatus?.progress || 0}%</span>
-                  </div>
-                  <div className="h-3 bg-amari-sand rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-amari-sage to-amari-terracotta rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${Math.max(jobStatus?.progress || 0, 5)}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Fun fact while waiting */}
-                <p className="mt-6 text-sm text-amari-muted italic">
-                  Did you know? Every story we create is unique, just like your little one!
-                </p>
-              </div>
-            </div>
-          ) : (
-            <AnimatePresence mode="wait">
-              {inputMode === 'natural' ? (
-                <motion.div
-                  key="natural"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                >
-                  <NaturalInput
-                    onGenerate={handleNaturalGenerate}
-                    isGenerating={isGenerating}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="wizard"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                >
-                  <StoryWizard onGenerate={handleGenerate} isGenerating={isGenerating} />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          )}
-        </>
-      ) : (
-        <>
-          <div className="mb-8 flex items-center justify-between">
-            <Button
-              onClick={handleCreateAnother}
-              variant="outline"
-              size="lg"
-            >
-              <ArrowLeft className="mr-2 h-5 w-5" />
-              Create Another Story
-            </Button>
-          </div>
-
-          <StoryDisplay
-            story={generatedStory}
-            onSave={handleSave}
+      {/* Main Form */}
+      <div className="space-y-6">
+        {/* Story Request Input */}
+        <div className="space-y-3">
+          <Label className="text-lg font-medium text-amari-charcoal">
+            What story would you like?
+          </Label>
+          <textarea
+            value={storyRequest}
+            onChange={(e) => setStoryRequest(e.target.value)}
+            placeholder="A bedtime story about my daughter Amari and her brother Cornelius who discover a magical garden..."
+            className="w-full px-4 py-4 text-lg border-2 border-amari-sand rounded-2xl focus:border-amari-terracotta focus:ring-2 focus:ring-amari-terracotta/20 focus:outline-none min-h-[140px] resize-none bg-white"
           />
-        </>
-      )}
+          <p className="text-sm text-amari-muted">
+            Include names, characters, themes, and any special details you want in the story
+          </p>
+        </div>
+
+        {/* Suggestion Chips */}
+        <div className="space-y-2">
+          <p className="text-sm text-amari-muted">Try one of these:</p>
+          <div className="flex flex-wrap gap-2">
+            {suggestionChips.map((suggestion) => (
+              <button
+                key={suggestion}
+                onClick={() => setStoryRequest(suggestion)}
+                className="px-3 py-1.5 text-sm bg-amari-sand/50 border border-amari-sand rounded-full text-amari-charcoal hover:bg-amari-terracotta/10 hover:border-amari-terracotta/30 transition-all"
+              >
+                {suggestion.length > 50 ? suggestion.substring(0, 50) + '...' : suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Options Grid */}
+        <div className="bg-amari-cream/50 rounded-2xl p-6 border border-amari-sand">
+          <h3 className="font-medium text-amari-charcoal mb-4 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-amari-sage" />
+            Story Settings
+          </h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Tone */}
+            <div className="space-y-2">
+              <Label>Tone</Label>
+              <Select value={tone} onValueChange={setTone}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {toneOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span>{option.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Age Group */}
+            <div className="space-y-2">
+              <Label>Age Group</Label>
+              <Select value={ageGroup} onValueChange={setAgeGroup}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ageOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span>{option.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Length */}
+            <div className="space-y-2">
+              <Label>Length</Label>
+              <Select value={length} onValueChange={setLength}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {lengthOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span>{option.label} ({option.description})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Style */}
+            <div className="space-y-2">
+              <Label>Style</Label>
+              <Select value={style} onValueChange={setStyle}>
+                <SelectTrigger className="bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {styleOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span>{option.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Generate Button */}
+        <Button
+          onClick={handleGenerate}
+          disabled={isGenerating || !canGenerate}
+          className="w-full h-14 text-lg"
+          size="lg"
+        >
+          {isGenerating ? (
+            <>
+              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+              Creating Your Story...
+            </>
+          ) : (
+            <>
+              <Sparkles className="mr-2 h-6 w-6" />
+              Generate Story
+            </>
+          )}
+        </Button>
+
+        {!canGenerate && storyRequest.length > 0 && (
+          <p className="text-center text-amari-muted text-sm">
+            Please add more details (at least 10 characters)
+          </p>
+        )}
+      </div>
     </div>
   )
 }
