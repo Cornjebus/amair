@@ -133,13 +133,13 @@ Guidelines:
 - confidence: Higher if name is clear and elements are specific.${characterContext}`
 
   try {
+    // Note: GPT-5 models are reasoning models and don't support custom temperature
     const completion = await client.chat.completions.create({
       model: 'gpt-5-nano',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: input }
       ],
-      temperature: 0.3,
       max_completion_tokens: 500,
       response_format: { type: 'json_object' }
     })

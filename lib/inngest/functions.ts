@@ -136,6 +136,7 @@ export const generateStoryJob = inngest.createFunction(
     });
 
     // Step 4: Generate story with OpenAI GPT-5 mini
+    // Note: GPT-5 models are reasoning models and don't support custom temperature
     const storyResponse = await step.run('generate-with-openai', async () => {
       const client = getOpenAIClient();
       const completion = await client.chat.completions.create({
@@ -150,7 +151,6 @@ export const generateStoryJob = inngest.createFunction(
             content: prompt,
           },
         ],
-        temperature: 0.9,
         max_completion_tokens: 3000,
       });
 
