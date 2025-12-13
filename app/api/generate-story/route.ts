@@ -199,6 +199,16 @@ export async function POST(req: Request) {
       )
     }
 
+    // Map legacy length values to database enum (quick/medium/epic)
+    const lengthMap: Record<string, string> = {
+      'short': 'quick',
+      'long': 'epic',
+      'quick': 'quick',
+      'medium': 'medium',
+      'epic': 'epic',
+    }
+    const dbLength = lengthMap[length] || 'medium'
+
     // Build the robust prompt
     const prompt = buildStoryPrompt({
       storyRequest: storyRequest.trim(),
@@ -242,7 +252,7 @@ export async function POST(req: Request) {
         title,
         content,
         tone,
-        length,
+        length: dbLength,
         word_count: wordCount,
         ai_provider: 'openai',
         ai_model: 'gpt-5-mini',
