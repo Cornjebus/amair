@@ -68,9 +68,9 @@ export default function StoriesPage() {
           <Image
             src="/logo.png"
             alt="Amari"
-            width={120}
-            height={40}
-            className="h-10 w-auto mx-auto mb-4 animate-pulse"
+            width={180}
+            height={60}
+            className="h-14 w-auto mx-auto mb-4 animate-pulse"
           />
           <p className="text-amari-muted">Loading your stories...</p>
         </div>

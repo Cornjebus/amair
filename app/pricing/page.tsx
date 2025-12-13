@@ -173,9 +173,9 @@ export default function PricingPage() {
             <Image
               src="/logo.png"
               alt="Amari"
-              width={120}
-              height={40}
-              className="h-8 w-auto"
+              width={180}
+              height={60}
+              className="h-12 w-auto"
               priority
             />
           </Link>
@@ -496,9 +496,9 @@ export default function PricingPage() {
           <Image
             src="/logo.png"
             alt="Amari"
-            width={80}
-            height={28}
-            className="h-6 w-auto opacity-70"
+            width={140}
+            height={46}
+            className="h-10 w-auto opacity-70"
           />
           <p className="text-sm text-amari-muted">
             &copy; {new Date().getFullYear()} Amari. Bedtime stories as unique as your child.
