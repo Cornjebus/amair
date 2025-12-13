@@ -151,7 +151,7 @@ export const generateStoryJob = inngest.createFunction(
           },
         ],
         temperature: 0.9,
-        max_tokens: 3000,
+        max_completion_tokens: 3000,
       });
 
       return completion.choices[0].message.content || '';
