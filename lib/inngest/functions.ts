@@ -89,6 +89,14 @@ export const generateStoryJob = inngest.createFunction(
 
     // Step 2: Build the prompt
     const prompt = await step.run('build-prompt', async () => {
+      // Log what we're receiving
+      console.log('[Story Generation] Building prompt with:', {
+        children: children.map(c => ({ name: c.name, gender: c.gender, items: c.items })),
+        config: { tone: config.tone, length: config.length, hasOriginalInput: !!config.originalInput },
+        originalInput: config.originalInput?.substring(0, 100),
+      });
+
+      const childNames = children.map((c) => c.name).join(' and ');
       let p = '';
 
       // If we have the original natural language input, use it as primary context
@@ -96,15 +104,15 @@ export const generateStoryJob = inngest.createFunction(
         p += `The parent requested: "${config.originalInput}"\n\n`;
         p += `Create a personalized ${config.tone} bedtime story based on this request.\n\n`;
       } else {
-        p += `Create a ${config.tone} bedtime story with the following elements:\n\n`;
+        p += `Create a ${config.tone} bedtime story.\n\n`;
       }
 
-      p += `Main Character(s):\n`;
+      p += `CRITICAL - The main character(s) MUST be named EXACTLY:\n`;
       children.forEach((child) => {
         const pronouns = child.gender === 'girl' ? 'she/her' : child.gender === 'boy' ? 'he/him' : 'they/them';
-        p += `- ${child.name} (${pronouns})`;
+        p += `- "${child.name}" (use ${pronouns} pronouns)`;
         if (child.items && child.items.length > 0) {
-          p += ` - Include these elements: ${child.items.join(', ')}`;
+          p += ` - Story elements to include: ${child.items.join(', ')}`;
         }
         p += '\n';
       });
@@ -112,15 +120,17 @@ export const generateStoryJob = inngest.createFunction(
       p += `\n${getToneInstructions(config.tone)}\n`;
       p += `${getLengthInstructions(config.length)}\n\n`;
 
-      p += `IMPORTANT - Personalization Requirements:\n`;
-      p += `- Make ${children.map((c) => c.name).join(' and ')} the HERO of the story - use their name frequently\n`;
-      p += `- Include ALL specific details mentioned (pet names, favorite things, places, etc.) as key story elements\n`;
-      p += `- Use the correct pronouns for each character\n`;
-      p += `- Make the child feel special and brave in the story\n`;
-      p += `- Include vivid, age-appropriate descriptions and dialogue\n`;
-      p += `- Create a satisfying, heartwarming conclusion\n\n`;
+      p += `ABSOLUTE REQUIREMENTS - YOU MUST FOLLOW THESE:\n`;
+      p += `1. The main character(s) MUST be named "${childNames}" - DO NOT use any other names like Riley, Emma, or generic names\n`;
+      p += `2. Use "${childNames}" by name at least 10 times throughout the story\n`;
+      p += `3. The title MUST include "${childNames}"\n`;
+      p += `4. Include ALL specific details mentioned (pet names, siblings, favorite things) as key story elements\n`;
+      p += `5. Use the correct pronouns for each character as specified above\n`;
+      p += `6. Make the child/children feel special, brave, and loved in the story\n`;
+      p += `7. Include vivid, age-appropriate descriptions and dialogue\n`;
+      p += `8. Create a satisfying, heartwarming conclusion\n\n`;
 
-      p += `Please provide:\n1. A creative, personalized title that includes the child's name\n2. The complete story`;
+      p += `Please provide:\n1. A creative title that includes "${childNames}"\n2. The complete personalized story`;
       return p;
     });
 

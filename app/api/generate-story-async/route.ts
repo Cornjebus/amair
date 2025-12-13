@@ -17,6 +17,7 @@ interface ChildData {
 interface StoryConfig {
   tone: 'bedtime-calm' | 'funny' | 'adventure' | 'mystery';
   length: 'quick' | 'medium' | 'epic';
+  originalInput?: string;
 }
 
 // =============================================================================
