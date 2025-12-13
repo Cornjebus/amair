@@ -218,22 +218,35 @@ export async function POST(req: Request) {
       style,
     })
 
-    console.log('[generate-story] Calling GPT-5 mini with user request:', storyRequest.substring(0, 100))
+    console.log('[generate-story] Calling OpenAI with user request:', storyRequest.substring(0, 100))
 
-    // Call GPT-5 mini directly
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-5-mini',
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      max_completion_tokens: 2000,
-      // Note: GPT-5 models only support default temperature (1)
-    })
+    // Try GPT-5 mini first, fallback to GPT-4o if unavailable
+    let responseText: string | null = null
+    let modelUsed = 'gpt-5-mini'
 
-    const responseText = completion.choices[0]?.message?.content
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-5-mini',
+        messages: [{ role: 'user', content: prompt }],
+        max_completion_tokens: 2000,
+      })
+      responseText = completion.choices[0]?.message?.content
+      console.log('[generate-story] GPT-5 mini response received')
+    } catch (gpt5Error: any) {
+      console.error('[generate-story] GPT-5 mini failed, trying GPT-4o:', gpt5Error.message)
+      modelUsed = 'gpt-4o'
+
+      // Fallback to GPT-4o
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 2000,
+        temperature: 0.8,
+      })
+      responseText = completion.choices[0]?.message?.content
+      console.log('[generate-story] GPT-4o response received')
+    }
+
     if (!responseText) {
       throw new Error('No response from AI model')
     }
@@ -255,7 +268,7 @@ export async function POST(req: Request) {
         length: dbLength,
         word_count: wordCount,
         ai_provider: 'openai',
-        ai_model: 'gpt-5-mini',
+        ai_model: modelUsed,
       })
       .select()
       .single()
