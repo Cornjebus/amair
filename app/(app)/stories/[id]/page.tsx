@@ -3,13 +3,14 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { StoryDisplay } from '@/components/story/story-display'
 import { AudioPlayer } from '@/components/story/audio-player'
 import { VoiceSelector } from '@/components/story/voice-selector'
 import { StyleSelector } from '@/components/story/style-selector'
 import { IllustrationGallery } from '@/components/story/illustration-gallery'
-import { ArrowLeft, Loader2, Sparkles, Paintbrush } from 'lucide-react'
+import { ArrowLeft, Loader2, Sparkles, Paintbrush, Mic, ImageIcon } from 'lucide-react'
 
 interface Subscription {
   tier: string
@@ -315,10 +316,14 @@ export default function StoryDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-lavender-400 to-skyblue-400 rounded-full flex items-center justify-center butterfly-glow animate-flutter mx-auto mb-4">
-            <span className="text-4xl">🦋</span>
-          </div>
-          <p className="text-lavender-600">Loading story...</p>
+          <Image
+            src="/logo.png"
+            alt="Amari"
+            width={120}
+            height={40}
+            className="h-10 w-auto mx-auto mb-4 animate-pulse"
+          />
+          <p className="text-amari-muted">Loading story...</p>
         </div>
       </div>
     )
@@ -351,30 +356,30 @@ export default function StoryDetailPage() {
             onDownload={handleDownloadAudio}
           />
         ) : isGeneratingAudio ? (
-          <div className="bg-gradient-to-r from-lavender-50 to-peach-50 rounded-2xl p-6 border-2 border-lavender-200">
+          <div className="bg-amari-sage/10 rounded-2xl p-6 border-2 border-amari-sage/30">
             <div className="text-center">
               <div className="inline-flex items-center justify-center mb-4">
                 <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-lavender-200 animate-ping opacity-25" />
+                  <div className="absolute inset-0 rounded-full bg-amari-sage/20 animate-ping opacity-25" />
                   <div className="relative p-3 bg-white rounded-full shadow-lg">
-                    <Loader2 className="h-8 w-8 text-lavender-600 animate-spin" />
+                    <Loader2 className="h-8 w-8 text-amari-sage animate-spin" />
                   </div>
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-lavender-900 mb-2">
+              <h3 className="text-lg font-display font-semibold text-amari-charcoal mb-2">
                 Creating Audio Narration
               </h3>
-              <p className="text-lavender-600 mb-4">
+              <p className="text-amari-muted mb-4">
                 {audioProgress?.message || 'Preparing your story...'}
               </p>
               <div className="max-w-xs mx-auto">
-                <div className="flex justify-between text-xs text-lavender-500 mb-1">
+                <div className="flex justify-between text-xs text-amari-muted mb-1">
                   <span>Progress</span>
                   <span>{audioProgress?.progress || 0}%</span>
                 </div>
-                <div className="h-2 bg-lavender-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-amari-sand rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-lavender-400 to-peach-400 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-amari-sage to-amari-terracotta rounded-full transition-all duration-500"
                     style={{ width: `${Math.max(audioProgress?.progress || 0, 5)}%` }}
                   />
                 </div>
@@ -382,13 +387,13 @@ export default function StoryDetailPage() {
             </div>
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-lavender-50 to-peach-50 rounded-2xl p-6 border-2 border-lavender-200 text-center">
-            <Sparkles className="h-10 w-10 text-lavender-500 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-lavender-900 mb-2">
+          <div className="bg-amari-sage/10 rounded-2xl p-6 border-2 border-amari-sage/30 text-center">
+            <Mic className="h-10 w-10 text-amari-sage mx-auto mb-3" />
+            <h3 className="text-lg font-display font-semibold text-amari-charcoal mb-2">
               Bring This Story to Life
             </h3>
-            <p className="text-lavender-600 mb-4">
-              Choose a narrator to hear your story read aloud
+            <p className="text-amari-muted mb-4">
+              Choose a narrator to hear your story read aloud with premium voices
             </p>
             <VoiceSelector
               selectedVoiceId={selectedVoiceId}
@@ -411,46 +416,46 @@ export default function StoryDetailPage() {
             canDownload={canDownload}
           />
         ) : isGeneratingImages ? (
-          <div className="bg-gradient-to-r from-peach-50 to-skyblue-50 rounded-2xl p-6 border-2 border-peach-200">
+          <div className="bg-amari-rose/20 rounded-2xl p-6 border-2 border-amari-rose/30">
             <div className="text-center">
               <div className="inline-flex items-center justify-center mb-4">
                 <div className="relative">
-                  <div className="absolute inset-0 rounded-full bg-peach-200 animate-ping opacity-25" />
+                  <div className="absolute inset-0 rounded-full bg-amari-rose/20 animate-ping opacity-25" />
                   <div className="relative p-3 bg-white rounded-full shadow-lg">
-                    <Loader2 className="h-8 w-8 text-peach-600 animate-spin" />
+                    <Loader2 className="h-8 w-8 text-amari-terracotta animate-spin" />
                   </div>
                 </div>
               </div>
-              <h3 className="text-lg font-semibold text-lavender-900 mb-2">
+              <h3 className="text-lg font-display font-semibold text-amari-charcoal mb-2">
                 Creating Illustrations
               </h3>
-              <p className="text-lavender-600 mb-4">
+              <p className="text-amari-muted mb-4">
                 {imageProgress?.message || 'Preparing to illustrate your story...'}
               </p>
               <div className="max-w-xs mx-auto">
-                <div className="flex justify-between text-xs text-lavender-500 mb-1">
+                <div className="flex justify-between text-xs text-amari-muted mb-1">
                   <span>Progress</span>
                   <span>{imageProgress?.progress || 0}%</span>
                 </div>
-                <div className="h-2 bg-peach-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-amari-sand rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-peach-400 to-skyblue-400 rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-amari-terracotta to-amari-rose rounded-full transition-all duration-500"
                     style={{ width: `${Math.max(imageProgress?.progress || 0, 5)}%` }}
                   />
                 </div>
               </div>
-              <p className="mt-4 text-xs text-lavender-500 italic">
+              <p className="mt-4 text-xs text-amari-muted italic">
                 This may take a few minutes - each illustration is uniquely generated
               </p>
             </div>
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-peach-50 to-skyblue-50 rounded-2xl p-6 border-2 border-peach-200 text-center">
-            <Paintbrush className="h-10 w-10 text-peach-500 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-lavender-900 mb-2">
+          <div className="bg-amari-rose/20 rounded-2xl p-6 border-2 border-amari-rose/30 text-center">
+            <ImageIcon className="h-10 w-10 text-amari-terracotta mx-auto mb-3" />
+            <h3 className="text-lg font-display font-semibold text-amari-charcoal mb-2">
               Add Beautiful Illustrations
             </h3>
-            <p className="text-lavender-600 mb-4">
+            <p className="text-amari-muted mb-4">
               Generate AI artwork to accompany your story
             </p>
             <StyleSelector

@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Volume2, VolumeX, Download, Heart, Share2, ChevronLeft, ChevronRight, Play, Pause, Image as ImageIcon } from 'lucide-react'
+import { Volume2, Download, Heart, Share2, ChevronLeft, ChevronRight, Play, Pause, Mic } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Link from 'next/link'
 
 interface StoryPage {
   pageNumber: number
@@ -25,13 +26,12 @@ interface StoryDisplayProps {
   }
   onSave?: () => void
   onShare?: () => void
+  showAudioPrompt?: boolean
 }
 
-export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
-  const [isReading, setIsReading] = useState(false)
+export function StoryDisplay({ story, onSave, onShare, showAudioPrompt = true }: StoryDisplayProps) {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false)
   const [currentPage, setCurrentPage] = useState(0)
-  const [utterance, setUtterance] = useState<SpeechSynthesisUtterance | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
   // Get content from either pages or direct content
@@ -42,43 +42,6 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
   const hasPages = pages.length > 0
   const wordCount = story.wordCount || storyContent.split(/\s+/).length
 
-  useEffect(() => {
-    // Initialize speech synthesis for web-based reading
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window && !story.audioUrl) {
-      const synth = window.speechSynthesis
-      const u = new SpeechSynthesisUtterance(storyContent)
-
-      // Configure voice
-      u.rate = 0.9 // Slightly slower for bedtime
-      u.pitch = 1.0
-      u.volume = 1.0
-
-      // Try to use a pleasant voice
-      const voices = synth.getVoices()
-      const preferredVoice = voices.find(
-        (voice) =>
-          voice.name.includes('Female') ||
-          voice.name.includes('Samantha') ||
-          voice.name.includes('Karen')
-      )
-      if (preferredVoice) {
-        u.voice = preferredVoice
-      }
-
-      u.onend = () => {
-        setIsReading(false)
-      }
-
-      setUtterance(u)
-    }
-
-    return () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel()
-      }
-    }
-  }, [storyContent, story.audioUrl])
-
   // Handle premium audio playback
   useEffect(() => {
     if (story.audioUrl && audioRef.current) {
@@ -88,8 +51,8 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
     }
   }, [story.audioUrl])
 
-  const toggleReading = () => {
-    // If we have premium audio, use that
+  const toggleAudio = () => {
+    // Only play if we have premium audio
     if (story.audioUrl && audioRef.current) {
       if (isPlayingAudio) {
         audioRef.current.pause()
@@ -98,18 +61,6 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
         audioRef.current.play()
         setIsPlayingAudio(true)
       }
-      return
-    }
-
-    // Fallback to web speech synthesis
-    if (!utterance) return
-
-    if (isReading) {
-      window.speechSynthesis.cancel()
-      setIsReading(false)
-    } else {
-      window.speechSynthesis.speak(utterance)
-      setIsReading(true)
     }
   }
 
@@ -181,42 +132,83 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Action buttons */}
-          <div className="flex flex-wrap gap-3 justify-center pb-6 border-b border-amari-sand">
-            <Button
-              onClick={toggleReading}
-              variant={isReading || isPlayingAudio ? 'default' : 'secondary'}
-              size="lg"
-            >
-              {isReading || isPlayingAudio ? (
-                <>
-                  <Pause className="mr-2 h-5 w-5" />
-                  Stop {story.audioUrl ? 'Audio' : 'Reading'}
-                </>
-              ) : (
-                <>
-                  {story.audioUrl ? <Play className="mr-2 h-5 w-5" /> : <Volume2 className="mr-2 h-5 w-5" />}
-                  {story.audioUrl ? 'Play Audio' : 'Read Aloud'}
-                </>
+          {/* Audio Player or Prompt */}
+          {story.audioUrl ? (
+            <div className="flex flex-wrap gap-3 justify-center pb-6 border-b border-amari-sand">
+              <Button
+                onClick={toggleAudio}
+                variant={isPlayingAudio ? 'default' : 'secondary'}
+                size="lg"
+              >
+                {isPlayingAudio ? (
+                  <>
+                    <Pause className="mr-2 h-5 w-5" />
+                    Stop Audio
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-5 w-5" />
+                    Play Audio
+                  </>
+                )}
+              </Button>
+              {onSave && (
+                <Button onClick={onSave} variant="outline" size="lg">
+                  <Heart className="mr-2 h-5 w-5" />
+                  Save Story
+                </Button>
               )}
-            </Button>
-            {onSave && (
-              <Button onClick={onSave} variant="outline" size="lg">
-                <Heart className="mr-2 h-5 w-5" />
-                Save Story
+              <Button onClick={handleDownload} variant="outline" size="lg">
+                <Download className="mr-2 h-5 w-5" />
+                Download
               </Button>
-            )}
-            <Button onClick={handleDownload} variant="outline" size="lg">
-              <Download className="mr-2 h-5 w-5" />
-              Download
-            </Button>
-            {onShare && (
-              <Button onClick={onShare} variant="outline" size="lg">
-                <Share2 className="mr-2 h-5 w-5" />
-                Share
+              {onShare && (
+                <Button onClick={onShare} variant="outline" size="lg">
+                  <Share2 className="mr-2 h-5 w-5" />
+                  Share
+                </Button>
+              )}
+            </div>
+          ) : showAudioPrompt && story.id ? (
+            <div className="mb-6 p-4 bg-amari-sage/10 border-2 border-amari-sage/30 rounded-2xl">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-3 text-center sm:text-left">
+                  <div className="p-2 bg-amari-sage/20 rounded-full">
+                    <Mic className="h-5 w-5 text-amari-sage" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-amari-charcoal">Bring this story to life!</p>
+                    <p className="text-sm text-amari-muted">Add premium AI narration with beautiful voices</p>
+                  </div>
+                </div>
+                <Link href={`/stories/${story.id}`}>
+                  <Button size="lg">
+                    <Volume2 className="mr-2 h-5 w-5" />
+                    Add Narration
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-3 justify-center pb-6 border-b border-amari-sand">
+              {onSave && (
+                <Button onClick={onSave} variant="outline" size="lg">
+                  <Heart className="mr-2 h-5 w-5" />
+                  Save Story
+                </Button>
+              )}
+              <Button onClick={handleDownload} variant="outline" size="lg">
+                <Download className="mr-2 h-5 w-5" />
+                Download
               </Button>
-            )}
-          </div>
+              {onShare && (
+                <Button onClick={onShare} variant="outline" size="lg">
+                  <Share2 className="mr-2 h-5 w-5" />
+                  Share
+                </Button>
+              )}
+            </div>
+          )}
 
           {/* Page-based display with illustrations */}
           {hasPages ? (
