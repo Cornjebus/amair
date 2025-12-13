@@ -116,22 +116,22 @@ const handleChipClick = (suggestion: string) => {
         animate={{ opacity: 1, y: 0 }}
         className="relative"
       >
-        <div className="relative bg-white rounded-3xl shadow-lg border-2 border-lavender-200 overflow-hidden focus-within:border-lavender-400 focus-within:shadow-xl transition-all">
+        <div className="relative bg-white rounded-3xl shadow-lg border-2 border-amari-sand overflow-hidden focus-within:border-amari-terracotta focus-within:shadow-xl transition-all">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={placeholder}
-            className="w-full px-6 py-5 text-lg text-lavender-900 placeholder-lavender-400 bg-transparent resize-none focus:outline-none min-h-[120px]"
+            className="w-full px-6 py-5 text-lg text-amari-charcoal placeholder-amari-muted bg-transparent resize-none focus:outline-none min-h-[120px]"
             rows={3}
           />
 
           {/* Bottom toolbar */}
-          <div className="flex items-center justify-between px-4 py-3 bg-lavender-50 border-t border-lavender-100">
+          <div className="flex items-center justify-between px-4 py-3 bg-amari-sand/30 border-t border-amari-sand">
             <div className="flex items-center gap-2">
               {/* Parsing indicator */}
               {isParsing && (
-                <div className="flex items-center text-lavender-500 text-sm">
+                <div className="flex items-center text-amari-muted text-sm">
                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                   Parsing...
                 </div>
@@ -139,21 +139,21 @@ const handleChipClick = (suggestion: string) => {
             </div>
 
             {/* Character count */}
-            <span className="text-sm text-lavender-400">
+            <span className="text-sm text-amari-muted">
               {input.length} characters
             </span>
           </div>
         </div>
 
         {/* Floating wand decoration */}
-        <div className="absolute -top-3 -right-3 p-2 bg-gradient-to-br from-lavender-400 to-peach-400 rounded-full shadow-lg">
+        <div className="absolute -top-3 -right-3 p-2 bg-gradient-to-br from-amari-terracotta to-amari-sage rounded-full shadow-lg">
           <Wand2 className="h-5 w-5 text-white" />
         </div>
       </motion.div>
 
       {/* Suggestion Chips */}
       <div className="space-y-2">
-        <p className="text-sm text-lavender-500 text-center">Try one of these:</p>
+        <p className="text-sm text-amari-muted text-center">Try one of these:</p>
         <div className="flex flex-wrap justify-center gap-2">
           {suggestionChips.map((suggestion, index) => (
             <motion.button
@@ -162,7 +162,7 @@ const handleChipClick = (suggestion: string) => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
               onClick={() => handleChipClick(suggestion)}
-              className="px-4 py-2 text-sm bg-white border border-lavender-200 rounded-full text-lavender-700 hover:bg-lavender-50 hover:border-lavender-300 transition-all hover:shadow-md"
+              className="px-4 py-2 text-sm bg-white border border-amari-sand rounded-full text-amari-charcoal hover:bg-amari-sand/50 hover:border-amari-terracotta/50 transition-all hover:shadow-md"
             >
               {suggestion}
             </motion.button>
@@ -177,43 +177,43 @@ const handleChipClick = (suggestion: string) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-gradient-to-br from-lavender-50 to-peach-50 rounded-2xl p-6 border-2 border-lavender-200"
+            className="bg-amari-sage/10 rounded-2xl p-6 border-2 border-amari-sage/30"
           >
             <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="h-5 w-5 text-lavender-600" />
-              <h3 className="font-semibold text-lavender-900">Story Preview</h3>
-              <span className="ml-auto text-sm text-lavender-500">
+              <Sparkles className="h-5 w-5 text-amari-sage" />
+              <h3 className="font-semibold text-amari-charcoal">Story Preview</h3>
+              <span className="ml-auto text-sm text-amari-muted">
                 {Math.round(parsed.confidence * 100)}% confident
               </span>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <span className="text-xs text-lavender-500 uppercase">Hero</span>
-                <p className="font-medium text-lavender-900">{parsed.childName}</p>
+                <span className="text-xs text-amari-muted uppercase">Hero</span>
+                <p className="font-medium text-amari-charcoal">{parsed.childName}</p>
               </div>
               <div>
-                <span className="text-xs text-lavender-500 uppercase">Tone</span>
-                <p className="font-medium text-lavender-900 capitalize">{parsed.tone.replace('-', ' ')}</p>
+                <span className="text-xs text-amari-muted uppercase">Tone</span>
+                <p className="font-medium text-amari-charcoal capitalize">{parsed.tone.replace('-', ' ')}</p>
               </div>
               <div>
-                <span className="text-xs text-lavender-500 uppercase">Length</span>
-                <p className="font-medium text-lavender-900 capitalize">{parsed.length}</p>
+                <span className="text-xs text-amari-muted uppercase">Length</span>
+                <p className="font-medium text-amari-charcoal capitalize">{parsed.length}</p>
               </div>
               <div>
-                <span className="text-xs text-lavender-500 uppercase">Theme</span>
-                <p className="font-medium text-lavender-900">{parsed.theme}</p>
+                <span className="text-xs text-amari-muted uppercase">Theme</span>
+                <p className="font-medium text-amari-charcoal">{parsed.theme}</p>
               </div>
             </div>
 
             {parsed.customElements.length > 0 && (
               <div className="mb-4">
-                <span className="text-xs text-lavender-500 uppercase">Magical Elements</span>
+                <span className="text-xs text-amari-muted uppercase">Magical Elements</span>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {parsed.customElements.map((element) => (
                     <span
                       key={element}
-                      className="px-2 py-1 bg-white rounded-full text-sm text-lavender-700 border border-lavender-200"
+                      className="px-2 py-1 bg-white rounded-full text-sm text-amari-charcoal border border-amari-sand"
                     >
                       {element}
                     </span>
@@ -224,12 +224,12 @@ const handleChipClick = (suggestion: string) => {
 
             {parsed.suggestedCharacters && parsed.suggestedCharacters.length > 0 && (
               <div className="mb-4">
-                <span className="text-xs text-lavender-500 uppercase">Matched Characters</span>
+                <span className="text-xs text-amari-muted uppercase">Matched Characters</span>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {parsed.suggestedCharacters.map((char) => (
                     <span
                       key={char.id}
-                      className="px-2 py-1 bg-peach-100 rounded-full text-sm text-peach-700 border border-peach-200"
+                      className="px-2 py-1 bg-amari-rose/20 rounded-full text-sm text-amari-charcoal border border-amari-rose/30"
                     >
                       {char.name}
                     </span>
@@ -262,11 +262,10 @@ const handleChipClick = (suggestion: string) => {
 
       {/* Help text when no input */}
       {!input && (
-        <p className="text-center text-lavender-400 text-sm">
+        <p className="text-center text-amari-muted text-sm">
           Just describe the story you want, and our AI will figure out the rest!
         </p>
       )}
     </div>
   )
 }
-

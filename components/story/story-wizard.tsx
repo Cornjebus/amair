@@ -27,10 +27,10 @@ interface StoryWizardProps {
 }
 
 const toneOptions = [
-  { value: 'bedtime-calm', label: 'Bedtime Calm', icon: Moon, color: 'lavender' },
-  { value: 'funny', label: 'Funny Adventure', icon: Laugh, color: 'skyblue' },
-  { value: 'adventure', label: 'Epic Adventure', icon: Compass, color: 'cream' },
-  { value: 'mystery', label: 'Mystery', icon: Search, color: 'lavender' },
+  { value: 'bedtime-calm', label: 'Bedtime Calm', icon: Moon, color: 'amari-sage' },
+  { value: 'funny', label: 'Funny Adventure', icon: Laugh, color: 'amari-terracotta' },
+  { value: 'adventure', label: 'Epic Adventure', icon: Compass, color: 'amari-rose' },
+  { value: 'mystery', label: 'Mystery', icon: Search, color: 'amari-charcoal' },
 ]
 
 const lengthOptions = [
@@ -100,11 +100,11 @@ export function StoryWizard({ onGenerate, isGenerating }: StoryWizardProps) {
           >
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="text-4xl animate-flutter">🦋</span>
+                <CardTitle className="flex items-center gap-2 text-amari-charcoal">
+                  <Sparkles className="h-6 w-6 text-amari-terracotta" />
                   Let's Create Magic
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-amari-muted">
                   How many children are joining tonight's story?
                 </CardDescription>
               </CardHeader>
@@ -148,10 +148,10 @@ export function StoryWizard({ onGenerate, isGenerating }: StoryWizardProps) {
           >
             <Card>
               <CardHeader>
-                <CardTitle>
+                <CardTitle className="text-amari-charcoal">
                   Child {currentChild + 1} of {numChildren}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-amari-muted">
                   What's their name and how many special things will they add?
                 </CardDescription>
               </CardHeader>
@@ -230,8 +230,8 @@ export function StoryWizard({ onGenerate, isGenerating }: StoryWizardProps) {
           >
             <Card>
               <CardHeader>
-                <CardTitle>{children[currentChild]?.name}'s Special Things</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-amari-charcoal">{children[currentChild]?.name}'s Special Things</CardTitle>
+                <CardDescription className="text-amari-muted">
                   Add {children[currentChild]?.itemCount} random things for the story
                   (objects, animals, places, or feelings)
                 </CardDescription>
@@ -291,8 +291,8 @@ export function StoryWizard({ onGenerate, isGenerating }: StoryWizardProps) {
           >
             <Card>
               <CardHeader>
-                <CardTitle>Story Style</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-amari-charcoal">Story Style</CardTitle>
+                <CardDescription className="text-amari-muted">
                   Choose the tone and length for tonight's story
                 </CardDescription>
               </CardHeader>
@@ -313,12 +313,16 @@ export function StoryWizard({ onGenerate, isGenerating }: StoryWizardProps) {
                           }
                           className={`p-4 rounded-2xl border-2 transition-all ${
                             config.tone === option.value
-                              ? 'border-lavender-500 bg-lavender-50 shadow-lg scale-105'
-                              : 'border-lavender-200 bg-white hover:border-lavender-300'
+                              ? 'border-amari-terracotta bg-amari-terracotta/10 shadow-lg'
+                              : 'border-amari-sand bg-white hover:border-amari-terracotta/50'
                           }`}
                         >
-                          <Icon className="h-6 w-6 mx-auto mb-2 text-lavender-600" />
-                          <div className="text-sm font-medium">{option.label}</div>
+                          <Icon className={`h-6 w-6 mx-auto mb-2 ${
+                            config.tone === option.value ? 'text-amari-terracotta' : 'text-amari-muted'
+                          }`} />
+                          <div className={`text-sm font-medium ${
+                            config.tone === option.value ? 'text-amari-charcoal' : 'text-amari-muted'
+                          }`}>{option.label}</div>
                         </button>
                       )
                     })}

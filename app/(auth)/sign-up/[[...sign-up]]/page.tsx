@@ -1,19 +1,26 @@
 import { SignUp } from '@clerk/nextjs'
+import Image from 'next/image'
+import Link from 'next/link'
 
 export default function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-block mb-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-lavender-400 to-skyblue-400 rounded-full flex items-center justify-center butterfly-glow animate-flutter">
-              <span className="text-4xl">🦋</span>
-            </div>
-          </div>
-          <h1 className="text-4xl font-playfair font-bold text-lavender-900 mb-2">
+          <Link href="/" className="inline-block mb-6">
+            <Image
+              src="/logo.png"
+              alt="Amari"
+              width={180}
+              height={60}
+              className="h-14 w-auto mx-auto"
+              priority
+            />
+          </Link>
+          <h1 className="text-3xl font-display font-semibold text-amari-charcoal mb-2">
             Join Amari
           </h1>
-          <p className="text-lavender-600">
+          <p className="text-amari-muted">
             Start creating magical bedtime stories
           </p>
         </div>
@@ -21,7 +28,12 @@ export default function SignUpPage() {
           appearance={{
             elements: {
               rootBox: "mx-auto",
-              card: "amari-card shadow-xl",
+              card: "bg-white rounded-2xl shadow-lg border border-amari-sand",
+              headerTitle: "text-amari-charcoal font-display",
+              headerSubtitle: "text-amari-muted",
+              formButtonPrimary: "bg-amari-terracotta hover:bg-[#C96A4F] text-white",
+              formFieldInput: "border-amari-sand focus:border-amari-terracotta focus:ring-amari-terracotta/20",
+              footerActionLink: "text-amari-terracotta hover:text-[#C96A4F]",
             }
           }}
         />

@@ -197,21 +197,21 @@ export default function CreateStoryPage() {
       {!generatedStory ? (
         <>
           <div className="mb-8 text-center">
-            <h1 className="text-5xl font-playfair font-bold text-lavender-900 mb-4">
+            <h1 className="text-4xl md:text-5xl font-display font-semibold text-amari-charcoal mb-4">
               Create a Magical Story
             </h1>
-            <p className="text-lg text-lavender-600 mb-6">
+            <p className="text-lg text-amari-muted mb-6">
               Let's weave imagination into a bedtime adventure
             </p>
 
             {/* Input Mode Toggle */}
-            <div className="inline-flex items-center p-1 bg-lavender-100 rounded-full">
+            <div className="inline-flex items-center p-1 bg-amari-sand rounded-full">
               <button
                 onClick={() => setInputMode('natural')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
                   inputMode === 'natural'
-                    ? 'bg-white shadow-md text-lavender-900'
-                    : 'text-lavender-600 hover:text-lavender-800'
+                    ? 'bg-white shadow-md text-amari-charcoal'
+                    : 'text-amari-muted hover:text-amari-charcoal'
                 }`}
               >
                 <MessageSquare className="h-4 w-4" />
@@ -221,8 +221,8 @@ export default function CreateStoryPage() {
                 onClick={() => setInputMode('wizard')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-full transition-all ${
                   inputMode === 'wizard'
-                    ? 'bg-white shadow-md text-lavender-900'
-                    : 'text-lavender-600 hover:text-lavender-800'
+                    ? 'bg-white shadow-md text-amari-charcoal'
+                    : 'text-amari-muted hover:text-amari-charcoal'
                 }`}
               >
                 <ListChecks className="h-4 w-4" />
@@ -248,40 +248,40 @@ export default function CreateStoryPage() {
 
           {/* Progress UI - Show INSTEAD of wizard when generating */}
           {isGenerating ? (
-            <div className="max-w-2xl mx-auto p-8 bg-gradient-to-br from-lavender-50 to-peach-50 border-2 border-lavender-200 rounded-3xl">
+            <div className="max-w-2xl mx-auto p-8 bg-amari-sage/10 border-2 border-amari-sage/30 rounded-3xl">
               <div className="text-center">
                 {/* Animated Icon */}
                 <div className="relative inline-flex items-center justify-center mb-6">
-                  <div className="absolute w-20 h-20 rounded-full bg-lavender-200 animate-ping opacity-25" />
+                  <div className="absolute w-20 h-20 rounded-full bg-amari-sage/20 animate-ping opacity-25" />
                   <div className="relative p-4 bg-white rounded-full shadow-lg">
-                    <CurrentIcon className="h-10 w-10 text-lavender-600 animate-pulse" />
+                    <CurrentIcon className="h-10 w-10 text-amari-sage animate-pulse" />
                   </div>
                 </div>
 
                 {/* Progress Message */}
-                <h3 className="text-2xl font-playfair font-semibold text-lavender-900 mb-2">
+                <h3 className="text-2xl font-display font-semibold text-amari-charcoal mb-2">
                   {progressMessages[messageIndex].text}
                 </h3>
-                <p className="text-lavender-600 mb-6">
+                <p className="text-amari-muted mb-6">
                   {jobStatus?.message || 'Creating something special...'}
                 </p>
 
                 {/* Progress Bar */}
                 <div className="max-w-md mx-auto">
-                  <div className="flex justify-between text-sm text-lavender-600 mb-2">
+                  <div className="flex justify-between text-sm text-amari-muted mb-2">
                     <span>Progress</span>
                     <span>{jobStatus?.progress || 0}%</span>
                   </div>
-                  <div className="h-3 bg-lavender-100 rounded-full overflow-hidden">
+                  <div className="h-3 bg-amari-sand rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-lavender-400 to-peach-400 rounded-full transition-all duration-500 ease-out"
+                      className="h-full bg-gradient-to-r from-amari-sage to-amari-terracotta rounded-full transition-all duration-500 ease-out"
                       style={{ width: `${Math.max(jobStatus?.progress || 0, 5)}%` }}
                     />
                   </div>
                 </div>
 
                 {/* Fun fact while waiting */}
-                <p className="mt-6 text-sm text-lavender-500 italic">
+                <p className="mt-6 text-sm text-amari-muted italic">
                   Did you know? Every story we create is unique, just like your little one!
                 </p>
               </div>

@@ -151,24 +151,16 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
       )}
 
       <Card className="relative overflow-hidden">
-        {/* Decorative butterflies */}
-        <div className="absolute top-4 right-4 text-4xl animate-flutter opacity-50">
-          🦋
-        </div>
-        <div className="absolute bottom-4 left-4 text-3xl animate-flutter opacity-30" style={{ animationDelay: '1s' }}>
-          🦋
-        </div>
-
         <CardHeader className="text-center pb-8">
           <motion.div
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
           >
-            <CardTitle className="text-4xl mb-4 text-lavender-900">
+            <CardTitle className="text-4xl mb-4 text-amari-charcoal font-display">
               {story.title}
             </CardTitle>
-            <div className="flex items-center justify-center gap-4 text-sm text-lavender-600">
+            <div className="flex items-center justify-center gap-4 text-sm text-amari-muted">
               <span>{wordCount} words</span>
               <span>•</span>
               <span>{Math.ceil(wordCount / 150)} min read</span>
@@ -190,7 +182,7 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
 
         <CardContent className="space-y-6">
           {/* Action buttons */}
-          <div className="flex flex-wrap gap-3 justify-center pb-6 border-b border-lavender-200">
+          <div className="flex flex-wrap gap-3 justify-center pb-6 border-b border-amari-sand">
             <Button
               onClick={toggleReading}
               variant={isReading || isPlayingAudio ? 'default' : 'secondary'}
@@ -250,7 +242,7 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
 
                   {/* Page Text */}
                   <div className="prose prose-lg max-w-none text-center">
-                    <div className="text-lavender-900 leading-relaxed font-serif text-xl">
+                    <div className="text-amari-charcoal leading-relaxed font-serif text-xl">
                       {pages[currentPage]?.text}
                     </div>
                   </div>
@@ -268,7 +260,7 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
                   <ChevronLeft className="mr-2 h-5 w-5" />
                   Previous
                 </Button>
-                <span className="text-lavender-600 font-medium tabular-nums">
+                <span className="text-amari-muted font-medium tabular-nums">
                   Page {currentPage + 1} of {pages.length}
                 </span>
                 <Button
@@ -290,8 +282,8 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
                     onClick={() => setCurrentPage(idx)}
                     className={`w-3 h-3 rounded-full transition-colors ${
                       idx === currentPage
-                        ? 'bg-lavender-500'
-                        : 'bg-lavender-200 hover:bg-lavender-300'
+                        ? 'bg-amari-terracotta'
+                        : 'bg-amari-sand hover:bg-amari-terracotta/50'
                     }`}
                     aria-label={`Go to page ${idx + 1}`}
                   />
@@ -306,7 +298,7 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
               transition={{ delay: 0.4 }}
               className="prose prose-lg max-w-none"
             >
-              <div className="text-lavender-900 leading-relaxed font-serif whitespace-pre-wrap">
+              <div className="text-amari-charcoal leading-relaxed font-serif whitespace-pre-wrap">
                 {storyContent}
               </div>
             </motion.div>
@@ -322,7 +314,7 @@ export function StoryDisplay({ story, onSave, onShare }: StoryDisplayProps) {
               >
                 ✨ 🌙 ✨
               </motion.div>
-              <p className="text-lavender-600 text-sm mt-4 font-playfair">
+              <p className="text-amari-muted text-sm mt-4 font-display">
                 The End
               </p>
             </div>
