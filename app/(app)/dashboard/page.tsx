@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Sparkles, BookOpen, Zap, Crown, Star, ArrowRight, Gift, Mic, Clock } from 'lucide-react'
+import { SkeletonDashboard } from '@/components/ui/skeleton'
 
 // Subscription tier configuration with Amari colors
 const TIER_CONFIG = {
@@ -148,20 +149,11 @@ export default function DashboardPage() {
     loadDashboardData()
   }, [user, router])
 
-  // Show minimal loading while checking subscription (no dashboard hints)
+  // Show skeleton loading while checking subscription
   if (isCheckingSubscription || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-amari-cream">
-        <div className="text-center">
-          <Image
-            src="/logo.png"
-            alt="Amari"
-            width={160}
-            height={53}
-            className="h-12 w-auto mx-auto mb-6 animate-pulse"
-          />
-          <p className="text-amari-muted text-lg">Setting up your experience...</p>
-        </div>
+      <div className="max-w-6xl mx-auto py-8">
+        <SkeletonDashboard />
       </div>
     )
   }

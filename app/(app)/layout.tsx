@@ -5,7 +5,11 @@ import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Crown, Star, Sparkles, BookOpen } from 'lucide-react'
+import { Crown, Star, Sparkles, BookOpen, Settings } from 'lucide-react'
+import { CombinedToastProvider } from '@/components/ui/Toast'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
+import { ConfirmationProvider } from '@/hooks/useConfirmation'
+import { SkipLink, SkipLinkTarget } from '@/components/accessibility'
 
 // Tier display configuration with new Amari colors
 const TIER_DISPLAY = {
@@ -54,78 +58,98 @@ export default function AppLayout({
   const TierIcon = tierInfo.icon
 
   return (
-    <div className="min-h-screen bg-amari-cream">
-      <header className="sticky top-0 z-50 w-full border-b border-amari-sand bg-amari-cream/95 backdrop-blur-sm">
-        <div className="container flex h-16 items-center justify-between px-4">
-          <Link href="/dashboard" className="flex items-center space-x-3">
-            <Image
-              src="/logo.png"
-              alt="Amari"
-              width={180}
-              height={60}
-              className="h-12 w-auto"
-              priority
-            />
-          </Link>
-
-          <nav className="flex items-center gap-6">
-            <Link
-              href="/dashboard"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/dashboard')
-                  ? 'text-amari-charcoal border-b-2 border-amari-terracotta'
-                  : 'text-amari-muted hover:text-amari-charcoal'
-              }`}
-            >
-              Dashboard
-            </Link>
-            <Link
-              href="/create"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/create')
-                  ? 'text-amari-charcoal border-b-2 border-amari-terracotta'
-                  : 'text-amari-muted hover:text-amari-charcoal'
-              }`}
-            >
-              Create Story
-            </Link>
-            <Link
-              href="/stories"
-              className={`text-sm font-medium transition-colors ${
-                isActive('/stories')
-                  ? 'text-amari-charcoal border-b-2 border-amari-terracotta'
-                  : 'text-amari-muted hover:text-amari-charcoal'
-              }`}
-            >
-              My Stories
+    <CombinedToastProvider position="bottom-right">
+    <ConfirmationProvider>
+      <SkipLink href="#main-content" />
+      <div className="min-h-screen bg-amari-cream">
+        <header className="sticky top-0 z-50 w-full border-b border-amari-sand bg-amari-cream/95 backdrop-blur-sm">
+          <div className="container flex h-16 items-center justify-between px-4">
+            <Link href="/dashboard" className="flex items-center space-x-3">
+              <Image
+                src="/logo.png"
+                alt="Amari"
+                width={180}
+                height={60}
+                className="h-12 w-auto"
+                priority
+              />
             </Link>
 
-            {/* Subscription Badge */}
-            <Link
-              href="/pricing"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${tierInfo.bg} hover:opacity-80 transition-opacity`}
-            >
-              <TierIcon className={`h-4 w-4 ${tierInfo.color}`} />
-              {subscription ? (
-                <>
-                  <span className={`text-sm font-semibold ${tierInfo.color} tabular-nums`}>
-                    {subscription.storiesRemaining}
-                  </span>
-                  <span className="text-xs text-amari-muted">stories left</span>
-                </>
-              ) : (
-                <span className="text-xs text-amari-muted">...</span>
-              )}
-            </Link>
+            <nav className="flex items-center gap-6">
+              <Link
+                href="/dashboard"
+                className={`text-sm font-medium transition-colors ${
+                  isActive('/dashboard')
+                    ? 'text-amari-charcoal border-b-2 border-amari-terracotta'
+                    : 'text-amari-muted hover:text-amari-charcoal'
+                }`}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/create"
+                className={`text-sm font-medium transition-colors ${
+                  isActive('/create')
+                    ? 'text-amari-charcoal border-b-2 border-amari-terracotta'
+                    : 'text-amari-muted hover:text-amari-charcoal'
+                }`}
+              >
+                Create Story
+              </Link>
+              <Link
+                href="/stories"
+                className={`text-sm font-medium transition-colors ${
+                  isActive('/stories')
+                    ? 'text-amari-charcoal border-b-2 border-amari-terracotta'
+                    : 'text-amari-muted hover:text-amari-charcoal'
+                }`}
+              >
+                My Stories
+              </Link>
 
-            <UserButton afterSignOutUrl="/" />
-          </nav>
-        </div>
-      </header>
+              {/* Subscription Badge */}
+              <Link
+                href="/pricing"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${tierInfo.bg} hover:opacity-80 transition-opacity`}
+              >
+                <TierIcon className={`h-4 w-4 ${tierInfo.color}`} />
+                {subscription ? (
+                  <>
+                    <span className={`text-sm font-semibold ${tierInfo.color} tabular-nums`}>
+                      {subscription.storiesRemaining}
+                    </span>
+                    <span className="text-xs text-amari-muted">stories left</span>
+                  </>
+                ) : (
+                  <span className="text-xs text-amari-muted">...</span>
+                )}
+              </Link>
 
-      <main className="container mx-auto px-4 py-8">
-        {children}
-      </main>
-    </div>
+              {/* Settings */}
+              <Link
+                href="/settings"
+                className={`p-2 rounded-lg transition-colors ${
+                  pathname?.startsWith('/settings')
+                    ? 'bg-amari-terracotta/10 text-amari-terracotta'
+                    : 'text-amari-muted hover:text-amari-charcoal hover:bg-amari-sand/50'
+                }`}
+                title="Settings"
+              >
+                <Settings className="h-5 w-5" />
+              </Link>
+
+              <UserButton afterSignOutUrl="/" />
+            </nav>
+          </div>
+        </header>
+
+        <SkipLinkTarget id="main-content" className="container mx-auto px-4 py-8">
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
+        </SkipLinkTarget>
+      </div>
+    </ConfirmationProvider>
+    </CombinedToastProvider>
   )
 }

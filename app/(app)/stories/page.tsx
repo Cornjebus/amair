@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sparkles, Search, Filter } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
+import { SkeletonStoriesGrid } from '@/components/ui/skeleton'
 
 export default function StoriesPage() {
   const { user } = useUser()
@@ -63,17 +64,8 @@ export default function StoriesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-center">
-          <Image
-            src="/logo.png"
-            alt="Amari"
-            width={180}
-            height={60}
-            className="h-14 w-auto mx-auto mb-4 animate-pulse"
-          />
-          <p className="text-amari-muted">Loading your stories...</p>
-        </div>
+      <div className="max-w-6xl mx-auto">
+        <SkeletonStoriesGrid />
       </div>
     )
   }

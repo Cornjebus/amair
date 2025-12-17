@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Mic, Crown, Check, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
 
 interface Voice {
   id: string;
@@ -45,6 +46,7 @@ export function VoiceSelector({
   });
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const { warning } = useToast();
 
   useEffect(() => {
     const fetchVoices = async () => {
@@ -74,8 +76,15 @@ export function VoiceSelector({
     }
 
     if (isPremium && premiumVoicesRemaining <= 0) {
-      // Show limit reached message
-      alert('You have used all your premium voices for this month.');
+      // Show limit reached toast instead of alert
+      warning({
+        title: 'Premium Voice Limit Reached',
+        description: 'You have used all your premium voices for this month. Upgrade your plan for more.',
+        action: {
+          label: 'Upgrade',
+          onClick: () => window.location.href = '/pricing',
+        },
+      });
       return;
     }
 

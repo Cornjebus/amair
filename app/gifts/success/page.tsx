@@ -15,11 +15,22 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { CombinedToastProvider, useToast } from '@/components/ui/Toast';
 
+// Wrapper for toast provider
 export default function GiftSuccessPage() {
+  return (
+    <CombinedToastProvider position="bottom-right">
+      <GiftSuccessContent />
+    </CombinedToastProvider>
+  );
+}
+
+function GiftSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const { success } = useToast();
   const [giftDetails, setGiftDetails] = useState<{
     redemptionCode: string;
     packageName: string;
@@ -67,7 +78,10 @@ export default function GiftSuccessPage() {
       });
     } else {
       navigator.clipboard.writeText(redeemUrl);
-      alert('Gift link copied to clipboard!');
+      success({
+        title: 'Link Copied!',
+        description: 'Gift link copied to clipboard.',
+      });
     }
   };
 

@@ -64,3 +64,14 @@ hive-mind-prompt-*.txt
 .env.production
 .env.production.*
 .env.vercel*
+
+# Playwright
+playwright-report/
+test-results/
+tests/e2e/.auth/user.json
+
+# Lighthouse
+lighthouse-report/
+
+# Accessibility
+accessibility-report/

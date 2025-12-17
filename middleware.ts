@@ -5,6 +5,7 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/demo(.*)',              // Public: demo story experience (no auth required)
   '/pricing(.*)',           // Public: pricing page (need this for subscription flow)
   '/gifts(.*)',             // Public: gift purchase and redemption
   '/subscription/success(.*)', // Public: subscription success page

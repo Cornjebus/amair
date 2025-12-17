@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { CombinedToastProvider, useToast } from '@/components/ui/Toast';
 
 interface GiftPackage {
   id: string;
@@ -54,12 +55,22 @@ const tierNames: Record<string, string> = {
   enchanted_library: 'Enchanted Library',
 };
 
+// Wrapper component with Toast provider
 export default function GiftsPage() {
+  return (
+    <CombinedToastProvider position="bottom-right">
+      <GiftsPageContent />
+    </CombinedToastProvider>
+  );
+}
+
+function GiftsPageContent() {
   const [packages, setPackages] = useState<GiftPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<GiftPackage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const router = useRouter();
+  const { warning, error: showError } = useToast();
 
   // Form state
   const [purchaserEmail, setPurchaserEmail] = useState('');
@@ -93,7 +104,10 @@ export default function GiftsPage() {
 
   const handleProceedToConfirm = () => {
     if (!purchaserEmail) {
-      alert('Please enter your email address');
+      warning({
+        title: 'Email Required',
+        description: 'Please enter your email address to continue.',
+      });
       return;
     }
     setStep('confirm');
@@ -124,12 +138,18 @@ export default function GiftsPage() {
       if (data.url) {
         window.location.href = data.url;
       } else {
-        alert('Error creating checkout. Please try again.');
+        showError({
+          title: 'Checkout Error',
+          description: 'Error creating checkout. Please try again.',
+        });
         setIsCheckingOut(false);
       }
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Error creating checkout. Please try again.');
+      showError({
+        title: 'Checkout Error',
+        description: 'Error creating checkout. Please try again.',
+      });
       setIsCheckingOut(false);
     }
   };
