@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react'
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
-import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Crown, Star, Sparkles, BookOpen, Settings } from 'lucide-react'
 import { CombinedToastProvider } from '@/components/ui/Toast'
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { ConfirmationProvider } from '@/hooks/useConfirmation'
 import { SkipLink, SkipLinkTarget } from '@/components/accessibility'
+import { LogoInline } from '@/components/ui/Logo'
 
 // Tier display configuration with new Amari colors
 const TIER_DISPLAY = {
@@ -64,16 +64,7 @@ export default function AppLayout({
       <div className="min-h-screen bg-amari-cream">
         <header className="sticky top-0 z-50 w-full border-b border-amari-sand bg-amari-cream/95 backdrop-blur-sm">
           <div className="container flex h-16 items-center justify-between px-4">
-            <Link href="/dashboard" className="flex items-center space-x-3">
-              <Image
-                src="/logo.png"
-                alt="Amari"
-                width={180}
-                height={60}
-                className="h-12 w-auto"
-                priority
-              />
-            </Link>
+            <LogoInline size="md" linkTo="/dashboard" />
 
             <nav className="flex items-center gap-6">
               <Link

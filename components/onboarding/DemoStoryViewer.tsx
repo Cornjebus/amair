@@ -12,9 +12,9 @@ import {
   Moon,
   Lock,
   ArrowRight,
-  BookOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { LogoInline } from '@/components/ui/Logo';
 import { DEMO_STORY, DEMO_PLACEHOLDER_IMAGES, DEMO_FEATURES } from '@/lib/demo/demo-story';
 
 // =============================================================================
@@ -59,12 +59,7 @@ export function DemoStoryViewer() {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-amari-sand bg-amari-cream/95 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-amari-terracotta" />
-            <span className="font-display text-xl font-semibold text-amari-charcoal">
-              Amari
-            </span>
-          </Link>
+          <LogoInline size="md" linkTo="/" />
 
           <div className="flex items-center gap-3">
             <span className="text-sm text-amari-muted hidden sm:block">

@@ -1,22 +1,14 @@
 import { SignUp } from '@clerk/nextjs'
-import Image from 'next/image'
-import Link from 'next/link'
+import { LogoInline } from '@/components/ui/Logo'
 
 export default function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-block mb-6">
-            <Image
-              src="/logo.png"
-              alt="Amari"
-              width={180}
-              height={60}
-              className="h-14 w-auto mx-auto"
-              priority
-            />
-          </Link>
+          <div className="flex justify-center mb-6">
+            <LogoInline size="lg" linkTo="/" />
+          </div>
           <h1 className="text-3xl font-display font-semibold text-amari-charcoal mb-2">
             Join Amari
           </h1>

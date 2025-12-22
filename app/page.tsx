@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { LogoInline } from '@/components/ui/Logo'
 import { Sparkles, Moon, Heart, BookOpen, Zap, Shield, ArrowRight } from 'lucide-react'
 
 export default function HomePage() {
@@ -10,18 +11,15 @@ export default function HomePage() {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-amari-sand bg-amari-cream/95 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between px-4">
-          <Link href="/" className="flex items-center space-x-3">
-            <Image
-              src="/logo.png"
-              alt="Amari"
-              width={180}
-              height={60}
-              className="h-12 w-auto"
-              priority
-            />
-          </Link>
+          <LogoInline size="md" linkTo="/" />
 
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-4">
+            <Link href="/pricing" className="text-sm text-amari-muted hover:text-amari-charcoal transition-colors hidden sm:block">
+              Pricing
+            </Link>
+            <Link href="/gifts" className="text-sm text-amari-muted hover:text-amari-charcoal transition-colors hidden sm:block">
+              Gift a Story
+            </Link>
             <Link href="/sign-in">
               <Button variant="ghost" size="sm">Sign In</Button>
             </Link>
@@ -33,35 +31,52 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-24 md:py-32">
-        <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-display font-semibold text-amari-charcoal mb-6 leading-tight">
-            Bedtime stories as unique as your child
-          </h1>
+      <section className="container mx-auto px-4 py-16 md:py-24">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left side - Text */}
+            <div className="text-center md:text-left order-2 md:order-1">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-semibold text-amari-charcoal mb-6 leading-tight">
+                Bedtime stories as unique as your child
+              </h1>
 
-          <p className="text-xl text-amari-muted mb-10 max-w-2xl mx-auto leading-relaxed">
-            Create magical, personalized stories together. Pick a few favorite things,
-            and watch Amari weave them into an enchanting bedtime adventure.
-          </p>
+              <p className="text-lg md:text-xl text-amari-muted mb-8 leading-relaxed">
+                Create magical, personalized stories together. Pick a few favorite things,
+                and watch Amari weave them into an enchanting bedtime adventure.
+              </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/sign-up">
-              <Button size="lg" className="text-base px-8 w-full sm:w-auto">
-                Start Your Free Trial
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
-            <Link href="/demo">
-              <Button size="lg" variant="outline" className="text-base px-8 w-full sm:w-auto">
-                <BookOpen className="mr-2 h-5 w-5" />
-                Try Demo Story
-              </Button>
-            </Link>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                <Link href="/sign-up">
+                  <Button size="lg" className="text-base px-8 w-full sm:w-auto">
+                    Start Your Free Trial
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/demo">
+                  <Button size="lg" variant="outline" className="text-base px-8 w-full sm:w-auto">
+                    <BookOpen className="mr-2 h-5 w-5" />
+                    Try Demo Story
+                  </Button>
+                </Link>
+              </div>
+
+              <p className="mt-6 text-sm text-amari-muted">
+                14-day free trial. No credit card required.
+              </p>
+            </div>
+
+            {/* Right side - Hero Image */}
+            <div className="order-1 md:order-2 flex justify-center">
+              <Image
+                src="/amari-hero.png"
+                alt="Amari - Custom Stories for Families & Kids"
+                width={500}
+                height={600}
+                className="rounded-3xl shadow-2xl max-w-full h-auto"
+                priority
+              />
+            </div>
           </div>
-
-          <p className="mt-6 text-sm text-amari-muted">
-            14-day free trial. No credit card required.
-          </p>
         </div>
       </section>
 
@@ -191,15 +206,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-amari-sand py-8">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-3">
-            <Image
-              src="/logo.png"
-              alt="Amari"
-              width={140}
-              height={46}
-              className="h-10 w-auto opacity-70"
-            />
-          </div>
+          <LogoInline size="sm" linkTo="/" className="opacity-70" />
           <p className="text-sm text-amari-muted">
             &copy; {new Date().getFullYear()} Amari. Bedtime stories as unique as your child.
           </p>

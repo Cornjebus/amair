@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
-import Image from 'next/image'
+import { LogoInline } from '@/components/ui/Logo'
 import { Button } from '@/components/ui/button'
 import { StoryDisplay } from '@/components/story/story-display'
 import { AudioPlayer } from '@/components/story/audio-player'
@@ -47,6 +47,13 @@ export default function StoryDetailPage() {
   const [isGeneratingImages, setIsGeneratingImages] = useState(false)
   const [imageJobId, setImageJobId] = useState<string | null>(null)
   const [imageProgress, setImageProgress] = useState<{ progress: number; message: string } | null>(null)
+
+  // Rating and regeneration state
+  const [userRating, setUserRating] = useState<number | null>(null)
+  const [feedback, setFeedback] = useState('')
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false)
+  const [isRegenerating, setIsRegenerating] = useState(false)
+  const [showRatingSuccess, setShowRatingSuccess] = useState(false)
 
   // Load story, subscription, and images
   useEffect(() => {
@@ -305,6 +312,56 @@ export default function StoryDetailPage() {
     }
   }
 
+  const handleSubmitRating = async () => {
+    if (!userRating || !story?.id) return
+
+    setIsSubmittingRating(true)
+    try {
+      const response = await fetch(`/api/stories/${story.id}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: userRating, feedback }),
+      })
+
+      if (response.ok) {
+        setShowRatingSuccess(true)
+        setTimeout(() => setShowRatingSuccess(false), 3000)
+      }
+    } catch (err) {
+      console.error('Error submitting rating:', err)
+    } finally {
+      setIsSubmittingRating(false)
+    }
+  }
+
+  const handleRegenerate = async () => {
+    if (!story?.id) return
+
+    setIsRegenerating(true)
+    try {
+      const response = await fetch(`/api/stories/${story.id}/regenerate`, {
+        method: 'POST',
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.story) {
+        setStory((prev: typeof story) => ({
+          ...prev,
+          content: data.story.content,
+          title: data.story.title,
+          wordCount: data.story.word_count,
+        }))
+      } else {
+        console.error('Regeneration failed:', data.error)
+      }
+    } catch (err) {
+      console.error('Error regenerating story:', err)
+    } finally {
+      setIsRegenerating(false)
+    }
+  }
+
   const hasPremiumAccess = subscription && subscription.tier !== 'free'
   const premiumVoicesRemaining = subscription
     ? Math.max(0, subscription.limits.premiumVoicesPerMonth - subscription.premiumVoicesUsed)
@@ -316,13 +373,9 @@ export default function StoryDetailPage() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <Image
-            src="/logo.png"
-            alt="Amari"
-            width={120}
-            height={40}
-            className="h-10 w-auto mx-auto mb-4 animate-pulse"
-          />
+          <div className="flex justify-center mb-4">
+            <LogoInline size="sm" className="animate-pulse" />
+          </div>
           <p className="text-amari-muted">Loading story...</p>
         </div>
       </div>
@@ -469,6 +522,83 @@ export default function StoryDetailPage() {
       </div>
 
       <StoryDisplay story={story} />
+
+      {/* Rating and Feedback Section */}
+      <div className="mt-8 bg-white rounded-2xl p-6 border border-amari-sand">
+        <h3 className="text-lg font-display font-semibold text-amari-charcoal mb-4">
+          How was this story?
+        </h3>
+
+        {showRatingSuccess ? (
+          <div className="text-center py-4">
+            <div className="text-amari-sage text-lg font-medium">
+              ✓ Thank you for your feedback!
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Star Rating */}
+            <div className="flex items-center gap-2 mb-4">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setUserRating(star)}
+                  className={`text-3xl transition-transform hover:scale-110 ${
+                    userRating && star <= userRating
+                      ? 'text-amari-terracotta'
+                      : 'text-amari-sand hover:text-amari-terracotta/50'
+                  }`}
+                >
+                  ★
+                </button>
+              ))}
+              {userRating && (
+                <span className="ml-2 text-sm text-amari-muted">
+                  {userRating === 5 ? 'Amazing!' : userRating === 4 ? 'Great!' : userRating === 3 ? 'Good' : userRating === 2 ? 'Okay' : 'Needs work'}
+                </span>
+              )}
+            </div>
+
+            {/* Feedback Text */}
+            <textarea
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+              placeholder="Any suggestions to improve the story? (optional)"
+              className="w-full px-4 py-3 rounded-xl border border-amari-sand bg-amari-cream/50 text-sm text-amari-charcoal placeholder:text-amari-muted focus:border-amari-terracotta focus:ring-2 focus:ring-amari-terracotta/20 focus:outline-none resize-none"
+              rows={2}
+            />
+
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+              <Button
+                onClick={handleSubmitRating}
+                disabled={!userRating || isSubmittingRating}
+                className="flex-1"
+              >
+                {isSubmittingRating ? 'Submitting...' : 'Submit Rating'}
+              </Button>
+
+              <Button
+                onClick={handleRegenerate}
+                disabled={isRegenerating}
+                variant="outline"
+                className="flex-1"
+              >
+                {isRegenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Try a Different Version
+                  </>
+                )}
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }

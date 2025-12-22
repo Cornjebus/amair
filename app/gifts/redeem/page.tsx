@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import Link from 'next/link';
-import Image from 'next/image';
+import { LogoInline } from '@/components/ui/Logo';
 import {
   Gift,
   CheckCircle,
@@ -181,16 +181,7 @@ export default function RedeemGiftPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-amari-sand bg-amari-cream/95 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between px-4">
-          <Link href="/" className="flex items-center space-x-3">
-            <Image
-              src="/logo.png"
-              alt="Amari"
-              width={180}
-              height={60}
-              className="h-12 w-auto"
-              priority
-            />
-          </Link>
+          <LogoInline size="md" linkTo="/" />
           <Link href="/gifts">
             <Button variant="ghost" size="sm">Buy Gift</Button>
           </Link>

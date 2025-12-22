@@ -308,3 +308,132 @@ export function createTierRateLimiter(baseLimit: number, windowMs: number, tier:
     analytics: true,
   });
 }
+
+/**
+ * Create a deterministic hash for a story request
+ * Used to detect duplicate/suspicious requests
+ */
+export function hashStoryRequest(request: {
+  storyRequest: string;
+  tone: string;
+  ageGroup: string;
+  length: string;
+  style: string;
+}): string {
+  const normalized = JSON.stringify({
+    request: request.storyRequest.toLowerCase().trim(),
+    tone: request.tone,
+    age: request.ageGroup,
+    length: request.length,
+    style: request.style,
+  });
+
+  // Simple hash function (FNV-1a)
+  let hash = 2166136261;
+  for (let i = 0; i < normalized.length; i++) {
+    hash ^= normalized.charCodeAt(i);
+    hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/**
+ * In-memory store for suspicious pattern detection
+ * Maps userId -> array of {hash, timestamp}
+ */
+class SuspiciousPatternDetector {
+  private requestHistory: Map<string, Array<{ hash: string; timestamp: number }>> = new Map();
+  private readonly windowMs: number = 5 * 60 * 1000; // 5 minutes
+  private readonly suspiciousThreshold: number = 3; // 3+ identical requests in window
+
+  constructor() {
+    // Cleanup old entries every 5 minutes
+    if (typeof setInterval !== 'undefined') {
+      setInterval(() => this.cleanup(), 5 * 60 * 1000);
+    }
+  }
+
+  /**
+   * Track a request and check if it's suspicious
+   * Returns true if the pattern is suspicious
+   */
+  async trackAndCheck(userId: string, requestHash: string): Promise<boolean> {
+    const now = Date.now();
+    const userHistory = this.requestHistory.get(userId) || [];
+
+    // Filter out old requests outside the window
+    const recentRequests = userHistory.filter(req => now - req.timestamp < this.windowMs);
+
+    // Count identical requests in the window
+    const identicalCount = recentRequests.filter(req => req.hash === requestHash).length;
+
+    // Add this request to history
+    recentRequests.push({ hash: requestHash, timestamp: now });
+    this.requestHistory.set(userId, recentRequests);
+
+    // Check if suspicious (3+ identical requests)
+    return identicalCount >= this.suspiciousThreshold - 1; // -1 because we haven't counted current request yet
+  }
+
+  private cleanup(): void {
+    const now = Date.now();
+    for (const [userId, history] of this.requestHistory.entries()) {
+      const recentRequests = history.filter(req => now - req.timestamp < this.windowMs);
+      if (recentRequests.length === 0) {
+        this.requestHistory.delete(userId);
+      } else {
+        this.requestHistory.set(userId, recentRequests);
+      }
+    }
+  }
+}
+
+// Initialize pattern detector
+const suspiciousPatternDetector = new SuspiciousPatternDetector();
+
+/**
+ * Check for suspicious request patterns
+ * Returns true if the request pattern is suspicious (same request repeated 3+ times in 5 minutes)
+ */
+export async function checkSuspiciousPattern(userId: string, requestHash: string): Promise<boolean> {
+  try {
+    // If Redis is available, use it for distributed tracking
+    if (redis) {
+      const key = `suspicious:${userId}:${requestHash}`;
+      const count = await redis.incr(key);
+
+      // Set expiry on first request
+      if (count === 1) {
+        await redis.expire(key, 300); // 5 minutes
+      }
+
+      // Log suspicious activity
+      if (count >= 3) {
+        logger.warn('Suspicious request pattern detected', {
+          userId,
+          requestHash,
+          count,
+        });
+        return true;
+      }
+
+      return false;
+    }
+
+    // Fallback to in-memory detection
+    const isSuspicious = await suspiciousPatternDetector.trackAndCheck(userId, requestHash);
+
+    if (isSuspicious) {
+      logger.warn('Suspicious request pattern detected (in-memory)', {
+        userId,
+        requestHash,
+      });
+    }
+
+    return isSuspicious;
+  } catch (error) {
+    // On error, don't block the request but log the issue
+    logger.error('Error checking suspicious pattern', error, { userId, requestHash });
+    return false;
+  }
+}

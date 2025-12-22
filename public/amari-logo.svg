@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" width="200" height="50">
+  <defs>
+    <!-- Gradient for butterfly -->
+    <linearGradient id="butterflyGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E07A5F"/>
+      <stop offset="100%" style="stop-color:#D4A574"/>
+    </linearGradient>
+  </defs>
+
+  <!-- "Amar" text -->
+  <text x="5" y="38" font-family="Georgia, serif" font-size="36" font-weight="600" fill="#2D3436">Amar</text>
+
+  <!-- "i" without dot -->
+  <text x="118" y="38" font-family="Georgia, serif" font-size="36" font-weight="600" fill="#2D3436">ı</text>
+
+  <!-- Butterfly as the dot on the "i" -->
+  <g transform="translate(120, 8)">
+    <!-- Left wing -->
+    <path d="M8 6 C4 2, 0 4, 2 8 C0 10, 2 14, 6 12 C7 11, 8 10, 8 9 Z" fill="url(#butterflyGradient)" opacity="0.9"/>
+    <!-- Right wing -->
+    <path d="M10 6 C14 2, 18 4, 16 8 C18 10, 16 14, 12 12 C11 11, 10 10, 10 9 Z" fill="url(#butterflyGradient)" opacity="0.9"/>
+    <!-- Body -->
+    <ellipse cx="9" cy="10" rx="1.5" ry="4" fill="#2D3436"/>
+    <!-- Antennae -->
+    <path d="M8 6 C7 4, 5 3, 4 2" stroke="#2D3436" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+    <path d="M10 6 C11 4, 13 3, 14 2" stroke="#2D3436" stroke-width="0.8" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>

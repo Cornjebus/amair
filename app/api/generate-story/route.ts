@@ -4,6 +4,11 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { syncUserToSupabase } from '@/lib/supabase/sync-user'
 import { getUserSubscription } from '@/lib/subscription/manager'
 import { canGenerateStory, trackStoryGeneration, getCurrentUsage } from '@/lib/subscription/usage'
+import { hashStoryRequest, checkSuspiciousPattern } from '@/lib/rate-limit'
+import { extractStoryMemory, buildUniverseContext } from '@/lib/universe/context-builder'
+import { filterInputContent, getBlockedContentMessage } from '@/lib/security/content-filter'
+import { moderateStoryContent, requiresRegeneration, getModerationMessage } from '@/lib/security/output-moderator'
+import { scoreStoryQuality } from '@/lib/quality/story-scorer'
 import OpenAI from 'openai'
 
 // Initialize OpenAI client
@@ -21,8 +26,9 @@ function buildStoryPrompt(params: {
   ageGroup: string
   length: string
   style: string
+  universeContext?: string
 }): string {
-  const { storyRequest, tone, ageGroup, length, style } = params
+  const { storyRequest, tone, ageGroup, length, style, universeContext } = params
 
   // Map tone to writing guidance
   const toneGuidance: Record<string, string> = {
@@ -54,14 +60,14 @@ function buildStoryPrompt(params: {
     'animal': 'Feature animals as main characters who can talk and have personalities. Give them relatable emotions and adventures. The animals should be charming and expressive.',
   }
 
-  return `You are a master children's storyteller. Your task is to write a personalized bedtime story based on the parent's specific request.
+  return `You are a master bedtime storyteller. Your task is to write a personalized, calming bedtime story based on the parent's specific request.
 
 ## CRITICAL INSTRUCTION - PERSONALIZATION IS MANDATORY
 The parent has provided a specific story request. You MUST use the EXACT names, characters, relationships, and details they mentioned. This is the most important part of your job.
 
 **PARENT'S STORY REQUEST:**
 "${storyRequest}"
-
+${universeContext ? `\n## FAMILY UNIVERSE CONTEXT:\n\n${universeContext}\n\n**IMPORTANT:** The above characters and memories are from this family's story universe. If relevant to the parent's request, weave them naturally into the story. These characters have depth and history - use them authentically.\n` : ''}
 ## STORY SETTINGS (Apply these to enhance the story):
 
 **TONE:** ${tone}
@@ -76,15 +82,57 @@ ${lengthGuidance[length] || lengthGuidance['medium']}
 **STYLE:** ${style}
 ${styleGuidance[style] || styleGuidance['classic']}
 
+## ABSOLUTE CONTENT RULES (NEVER VIOLATE):
+
+You are writing bedtime stories for children. Safety is paramount.
+
+**NEVER include:**
+- Violence, death, injury, fighting, or weapons of any kind
+- Scary content - no monsters attacking, children being lost or in danger, nightmares
+- Adult themes, romance, or anything inappropriate for children
+- References to drugs, alcohol, smoking, or harmful substances
+- Bullying, meanness, or characters being cruel to each other
+- Anything that could give a child nightmares or make them scared to sleep
+
+**ALWAYS ensure:**
+- The story feels safe, warm, and comforting
+- Characters are kind to each other
+- Any "adventure" has gentle stakes (finding a lost toy, not escaping danger)
+- The ending is peaceful and satisfying
+- A parent would feel good reading this to their child at bedtime
+
+**If the user's request contains inappropriate elements:**
+Transform them into safe alternatives. "Dinosaur battle" becomes "dinosaur dance party". "Monster" becomes "friendly creature". "Fighting" becomes "playing" or "racing".
+
 ## YOUR TASK:
 
-1. **Extract and USE every name mentioned** - If the parent says "Amari and her brother Cornelius", your story MUST feature characters named Amari and Cornelius as siblings.
+**Think like a master storyteller.** The parent's request is raw material - your job is to understand their INTENT and transform it into beautiful, flowing prose that a professional children's author would write.
 
-2. **Honor the relationship details** - If they say "daughter", "son", "brother", "sister", "best friend" - use those exact relationships.
+### 1. NAMES ARE SACRED
+Use every name exactly as provided. If they mention "Amari", "Cornelius", "Luna", "Max" - those exact names must appear.
 
-3. **Include any specific elements mentioned** - Magic gardens, dragons, treasure maps, specific pets - whatever they asked for must appear in the story.
+### 2. INTERPRET, DON'T TRANSCRIBE
+The parent writes casually; you write artfully. Understand what they MEAN, not just what they SAY:
+- "my daughter" → She's a girl. Write "a clever girl", "a curious child", "a bright-eyed dreamer"
+- "likes dinosaurs" → Weave dinosaurs into the story naturally, don't just list them
+- "lives by the ocean" → Paint the setting with sensory details - salt air, crashing waves, sandy toes
+- "her mom Tara" → Tara is her mother - introduce her warmly as characters naturally would
 
-4. **Apply the tone, age, length, and style settings** to craft how you tell the story, but NEVER change WHO the story is about.
+Never use awkward literal translations. "Little daughter" sounds robotic. "A spirited young girl" sounds like a real book.
+
+### 3. WRITE WITH CRAFT
+Great children's stories have:
+- **Rhythm and flow** - Sentences that beg to be read aloud
+- **Sensory details** - What do characters see, hear, smell, feel?
+- **Emotional truth** - Capture the feelings, not just the facts
+- **Natural dialogue** - Characters speak like real people
+- **Show, don't tell** - "Her eyes widened with wonder" not "She was amazed"
+
+### 4. INCLUDE THEIR ELEMENTS
+Whatever specific things they mention (magic gardens, dragons, treasure hunts, favorite toys) - weave them into your story with purpose and delight.
+
+### 5. THE FINAL TEST
+Read your story aloud in your mind. Does it flow like a beloved bedtime book? Would a child lean in closer to hear what happens next? Would a parent enjoy reading it? If not, revise until it does.
 
 ## OUTPUT FORMAT:
 
@@ -124,6 +172,37 @@ function parseStoryResponse(text: string): { title: string; content: string } {
   const content = lines.slice(contentStartIndex).join('\n').trim()
 
   return { title, content }
+}
+
+// =============================================================================
+// Extract character names from story request using regex
+// =============================================================================
+
+function extractCharacterNames(text: string): string[] {
+  const names: string[] = []
+
+  // Split into sentences to avoid capitalized words at sentence start
+  const sentences = text.split(/[.!?]+/)
+
+  for (const sentence of sentences) {
+    const words = sentence.trim().split(/\s+/)
+
+    // Skip first word of each sentence (likely capitalized for grammar)
+    for (let i = 1; i < words.length; i++) {
+      const word = words[i]
+
+      // Match capitalized words that look like names (2+ chars, no special chars)
+      if (/^[A-Z][a-z]{1,}$/.test(word)) {
+        // Filter out common words that are capitalized
+        const commonWords = ['The', 'And', 'But', 'When', 'Where', 'What', 'Who', 'How', 'Why', 'Then', 'Now', 'Once']
+        if (!commonWords.includes(word) && !names.includes(word)) {
+          names.push(word)
+        }
+      }
+    }
+  }
+
+  return names
 }
 
 // =============================================================================
@@ -199,6 +278,37 @@ export async function POST(req: Request) {
       )
     }
 
+    // Check input content safety BEFORE processing
+    const inputFilter = filterInputContent(storyRequest)
+    if (inputFilter.blocked) {
+      console.warn('[generate-story] Input blocked:', inputFilter.category, 'for user:', user.id)
+      return NextResponse.json(
+        {
+          error: getBlockedContentMessage(inputFilter),
+          category: inputFilter.category,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Use sanitized text if available
+    const safeStoryRequest = inputFilter.sanitizedText || storyRequest
+
+    // Check for suspicious patterns (identical requests repeated quickly)
+    const requestHash = hashStoryRequest({ storyRequest: safeStoryRequest, tone, ageGroup, length, style })
+    const isSuspicious = await checkSuspiciousPattern(user.id, requestHash)
+
+    if (isSuspicious) {
+      console.warn('[generate-story] Suspicious pattern detected for user:', user.id)
+      return NextResponse.json(
+        {
+          error: 'Please wait a moment before requesting the same story again.',
+          retryAfter: 60,
+        },
+        { status: 429 }
+      )
+    }
+
     // Map legacy length values to database enum (quick/medium/epic)
     type StoryLength = 'quick' | 'medium' | 'epic'
     const lengthMap: Record<string, StoryLength> = {
@@ -210,6 +320,12 @@ export async function POST(req: Request) {
     }
     const dbLength: StoryLength = lengthMap[length] || 'medium'
 
+    // Build universe context if available
+    const universeContext = await buildUniverseContext(user.id)
+    const universePrompt = universeContext?.contextPrompt || undefined
+
+    console.log('[generate-story] Universe context available:', !!universePrompt)
+
     // Build the robust prompt
     const prompt = buildStoryPrompt({
       storyRequest: storyRequest.trim(),
@@ -217,6 +333,7 @@ export async function POST(req: Request) {
       ageGroup,
       length,
       style,
+      universeContext: universePrompt,
     })
 
     console.log('[generate-story] Calling OpenAI with user request:', storyRequest.substring(0, 100))
@@ -263,7 +380,24 @@ export async function POST(req: Request) {
 
     console.log('[generate-story] Story generated:', title, `(${wordCount} words)`)
 
-    // Save to database
+    // Check output content safety AFTER generation
+    const outputModeration = await moderateStoryContent(content)
+    if (outputModeration.flagged && requiresRegeneration(outputModeration)) {
+      console.warn('[generate-story] Output flagged by moderation:', outputModeration.categories)
+      // For now, log and continue - in production, could regenerate with stricter prompt
+      // This helps us monitor without blocking users
+    }
+
+    // Score story quality
+    const qualityScore = scoreStoryQuality(content, {
+      storyRequest: safeStoryRequest,
+      ageGroup,
+      targetLength: dbLength,
+    })
+
+    console.log('[generate-story] Quality score:', qualityScore.total, qualityScore.passed ? 'PASSED' : 'NEEDS IMPROVEMENT')
+
+    // Save to database with quality score
     const { data: story, error: dbError } = await supabaseAdmin
       .from('stories')
       .insert({
@@ -273,6 +407,7 @@ export async function POST(req: Request) {
         tone,
         length: dbLength,
         word_count: wordCount,
+        quality_score: qualityScore.total,
         ai_provider: 'openai',
         ai_model: modelUsed,
       })
@@ -282,6 +417,20 @@ export async function POST(req: Request) {
     if (dbError) {
       console.error('[generate-story] Database error:', dbError)
       throw new Error('Failed to save story')
+    }
+
+    // Extract and save story memory for future context (non-blocking)
+    try {
+      const characterNames = extractCharacterNames(storyRequest)
+      await extractStoryMemory(user.id, story.id, content, [])
+
+      console.log('[generate-story] Memory extraction completed', {
+        storyId: story.id,
+        characters: characterNames,
+      })
+    } catch (memoryError: any) {
+      // Don't fail the request if memory extraction fails
+      console.error('[generate-story] Memory extraction failed:', memoryError.message)
     }
 
     // Track usage

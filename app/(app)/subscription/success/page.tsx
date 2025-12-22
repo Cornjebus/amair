@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
+import { LogoInline } from '@/components/ui/Logo';
 import { CheckCircle, Loader2, Sparkles, BookOpen, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -71,13 +71,9 @@ export default function SubscriptionSuccessPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-amari-cream">
         <div className="text-center">
-          <Image
-            src="/logo.png"
-            alt="Amari"
-            width={180}
-            height={60}
-            className="h-14 w-auto mx-auto mb-6 animate-pulse"
-          />
+          <div className="flex justify-center mb-6">
+            <LogoInline size="lg" className="animate-pulse" />
+          </div>
           <Loader2 className="h-12 w-12 animate-spin text-amari-terracotta mx-auto mb-4" />
           <h1 className="text-2xl font-display font-semibold text-amari-charcoal mb-2">
             Activating your subscription...

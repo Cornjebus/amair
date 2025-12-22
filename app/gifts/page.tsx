@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
+import { LogoInline } from '@/components/ui/Logo';
 import {
   Gift,
   Star,
@@ -169,16 +169,7 @@ function GiftsPageContent() {
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-amari-sand bg-amari-cream/95 backdrop-blur-sm">
         <div className="container flex h-16 items-center justify-between px-4">
-          <Link href="/" className="flex items-center space-x-3">
-            <Image
-              src="/logo.png"
-              alt="Amari"
-              width={180}
-              height={60}
-              className="h-12 w-auto"
-              priority
-            />
-          </Link>
+          <LogoInline size="md" linkTo="/" />
           <div className="flex items-center gap-4">
             <Link href="/pricing">
               <Button variant="ghost" size="sm">View Plans</Button>
@@ -485,13 +476,7 @@ function GiftsPageContent() {
       {/* Footer */}
       <footer className="border-t border-amari-sand py-8 mt-12">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <Image
-            src="/logo.png"
-            alt="Amari"
-            width={140}
-            height={46}
-            className="h-10 w-auto opacity-70"
-          />
+          <LogoInline size="sm" linkTo="/" className="opacity-70" />
           <p className="text-sm text-amari-muted">
             &copy; {new Date().getFullYear()} Amari. Bedtime stories as unique as your child.
           </p>
