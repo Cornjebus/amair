@@ -169,7 +169,7 @@ export async function moderateStoryContent(content: string): Promise<ModerationR
     const openai = getOpenAIClient();
     const moderationResponse = (await openai.moderations.create({
       input: normalizedContent,
-    })) as OpenAIModerationResponse;
+    })) as unknown as OpenAIModerationResponse;
 
     const result = moderationResponse.results[0];
     const flaggedCategories: string[] = [];

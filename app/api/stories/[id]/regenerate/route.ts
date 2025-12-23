@@ -240,13 +240,13 @@ export async function POST(
       );
     }
 
-    // Get original parameters from metadata or use defaults
-    const metadata = originalStory.metadata || {};
-    const storyRequest = metadata.storyRequest || 'A magical adventure';
+    // Get original parameters - use defaults since original metadata isn't stored
     const tone = originalStory.tone || 'bedtime-calm';
-    const ageGroup = metadata.ageGroup || '5-7';
-    const style = metadata.style || 'classic';
     const length = originalStory.length || 'medium';
+    // Default values for parameters not stored in DB
+    const storyRequest = 'A magical adventure story';
+    const ageGroup = '5-7';
+    const style = 'classic';
 
     console.log('[regenerate-story] Regenerating story:', {
       originalId: params.id,

@@ -491,12 +491,18 @@ export type Database = {
       }
       stories: {
         Row: {
+          ai_model: string | null
+          ai_provider: string | null
           audio_url: string | null
           content: string
           created_at: string | null
+          feedback: string | null
           id: string
           is_favorite: boolean | null
           length: Database["public"]["Enums"]["story_length"]
+          quality_score: number | null
+          rating: number | null
+          regeneration_count: number | null
           title: string
           tone: Database["public"]["Enums"]["story_tone"]
           updated_at: string | null
@@ -506,12 +512,18 @@ export type Database = {
           word_count: number
         }
         Insert: {
+          ai_model?: string | null
+          ai_provider?: string | null
           audio_url?: string | null
           content: string
           created_at?: string | null
+          feedback?: string | null
           id?: string
           is_favorite?: boolean | null
           length: Database["public"]["Enums"]["story_length"]
+          quality_score?: number | null
+          rating?: number | null
+          regeneration_count?: number | null
           title: string
           tone: Database["public"]["Enums"]["story_tone"]
           updated_at?: string | null
@@ -521,12 +533,18 @@ export type Database = {
           word_count: number
         }
         Update: {
+          ai_model?: string | null
+          ai_provider?: string | null
           audio_url?: string | null
           content?: string
           created_at?: string | null
+          feedback?: string | null
           id?: string
           is_favorite?: boolean | null
           length?: Database["public"]["Enums"]["story_length"]
+          quality_score?: number | null
+          rating?: number | null
+          regeneration_count?: number | null
           title?: string
           tone?: Database["public"]["Enums"]["story_tone"]
           updated_at?: string | null
