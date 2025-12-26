@@ -79,6 +79,10 @@ export default function DashboardPage() {
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(true)
 
   useEffect(() => {
+    // Force fresh data on navigation - busts Next.js Router Cache
+    // This prevents the "ghost dashboard" issue where stale data flashes
+    router.refresh()
+
     async function loadDashboardData() {
       if (!user) return
 

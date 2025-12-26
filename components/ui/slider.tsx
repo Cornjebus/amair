@@ -29,9 +29,9 @@ export function Slider({
 
   return (
     <div className={cn('relative w-full', className)}>
-      <div className="relative h-2 w-full rounded-full bg-lavender-100">
+      <div className="relative h-2 w-full rounded-full bg-amari-sand">
         <div
-          className="absolute h-full rounded-full bg-lavender-500 transition-all"
+          className="absolute h-full rounded-full bg-amari-terracotta transition-all"
           style={{ width: `${percentage}%` }}
         />
       </div>

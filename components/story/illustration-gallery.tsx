@@ -63,10 +63,10 @@ export function IllustrationGallery({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-lavender-900 flex items-center gap-2">
+      <h3 className="text-lg font-semibold text-amari-charcoal flex items-center gap-2">
         <span>✨</span>
         Story Illustrations
-        <span className="text-sm font-normal text-lavender-500">
+        <span className="text-sm font-normal text-amari-muted">
           ({sortedImages.length} scenes)
         </span>
       </h3>
@@ -77,7 +77,7 @@ export function IllustrationGallery({
           <button
             key={image.id}
             onClick={() => setSelectedIndex(index)}
-            className="group relative aspect-square rounded-xl overflow-hidden border-2 border-lavender-100 hover:border-lavender-300 transition-all hover:shadow-lg"
+            className="group relative aspect-square rounded-xl overflow-hidden border-2 border-amari-sand hover:border-amari-terracotta transition-all hover:shadow-lg"
           >
             <img
               src={image.public_url}

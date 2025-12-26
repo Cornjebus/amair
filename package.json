@@ -22,7 +22,8 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "test:a11y": "playwright test accessibility-audit.spec.ts",
-    "lighthouse": "npx tsx scripts/lighthouse-audit.ts"
+    "lighthouse": "npx tsx scripts/lighthouse-audit.ts",
+    "check:design-system": "./scripts/check-legacy-colors.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.1",

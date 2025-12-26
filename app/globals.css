@@ -179,22 +179,8 @@
     @apply bg-amari-surface border-amari-sand;
   }
 
-  /* ===========================================
-     LEGACY UTILITIES (keeping for migration)
-     =========================================== */
-  .amari-card {
-    @apply bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg shadow-lavender-200/50 border border-lavender-100;
-  }
-
-  .amari-button {
-    @apply rounded-full px-6 py-3 font-medium transition-all duration-300 hover:scale-105 active:scale-95;
-  }
-
-  .amari-input {
-    @apply rounded-2xl border-2 border-lavender-200 bg-white/50 px-4 py-3 focus:border-lavender-400 focus:ring-4 focus:ring-lavender-100 transition-all;
-  }
-
+  /* Butterfly glow effect using Amari terracotta */
   .butterfly-glow {
-    filter: drop-shadow(0 0 20px rgba(224, 122, 95, 0.4)); /* Updated to terracotta */
+    filter: drop-shadow(0 0 20px rgba(224, 122, 95, 0.4));
   }
 }

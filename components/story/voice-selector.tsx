@@ -100,7 +100,7 @@ export function VoiceSelector({
           variant="outline"
           size="lg"
           disabled={isGenerating}
-          className="bg-white border-2 border-lavender-300 hover:border-lavender-400 hover:bg-lavender-50 text-lavender-700"
+          className="bg-white border-2 border-amari-terracotta/50 hover:border-amari-terracotta hover:bg-amari-terracotta/5 text-amari-charcoal"
         >
           {isGenerating ? (
             <>
@@ -118,7 +118,7 @@ export function VoiceSelector({
 
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-playfair text-lavender-900">
+          <DialogTitle className="text-2xl font-display text-amari-charcoal">
             Choose a Narrator
           </DialogTitle>
           <DialogDescription>
@@ -128,13 +128,13 @@ export function VoiceSelector({
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-lavender-500" />
+            <Loader2 className="h-8 w-8 animate-spin text-amari-terracotta" />
           </div>
         ) : (
           <div className="space-y-6 mt-4">
             {/* Free Voices */}
             <div>
-              <h3 className="text-sm font-semibold text-lavender-700 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-amari-charcoal mb-3 flex items-center gap-2">
                 <Mic className="h-4 w-4" />
                 Free Voices
               </h3>
@@ -153,7 +153,7 @@ export function VoiceSelector({
 
             {/* Premium Voices */}
             <div>
-              <h3 className="text-sm font-semibold text-lavender-700 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-amari-charcoal mb-3 flex items-center gap-2">
                 <Crown className="h-4 w-4 text-amber-500" />
                 Premium Voices
                 {hasPremiumAccess && (
@@ -176,8 +176,8 @@ export function VoiceSelector({
               </div>
 
               {!hasPremiumAccess && (
-                <p className="mt-3 text-sm text-lavender-500 text-center">
-                  <a href="/pricing" className="text-lavender-600 underline">
+                <p className="mt-3 text-sm text-amari-muted text-center">
+                  <a href="/pricing" className="text-amari-terracotta underline">
                     Upgrade your plan
                   </a>{' '}
                   to unlock premium voices
@@ -213,15 +213,15 @@ function VoiceCard({
       className={`
         relative p-4 rounded-xl border-2 text-left transition-all
         ${isSelected
-          ? 'border-lavender-500 bg-lavender-50 shadow-md'
-          : 'border-gray-200 bg-white hover:border-lavender-300'
+          ? 'border-amari-terracotta bg-amari-terracotta/5 shadow-md'
+          : 'border-amari-sand bg-white hover:border-amari-terracotta/50'
         }
         ${disabled || locked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
       `}
     >
       {/* Selected indicator */}
       {isSelected && (
-        <div className="absolute top-2 right-2 h-5 w-5 bg-lavender-500 rounded-full flex items-center justify-center">
+        <div className="absolute top-2 right-2 h-5 w-5 bg-amari-terracotta rounded-full flex items-center justify-center">
           <Check className="h-3 w-3 text-white" />
         </div>
       )}
@@ -246,15 +246,15 @@ function VoiceCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h4 className="font-semibold text-lavender-900">{voice.name}</h4>
+            <h4 className="font-semibold text-amari-charcoal">{voice.name}</h4>
             {voice.isPremium && (
-              <Badge variant="outline" className="text-xs border-amber-400 text-amber-600">
+              <Badge variant="outline" className="text-xs border-amari-rose text-amari-rose">
                 Premium
               </Badge>
             )}
           </div>
-          <p className="text-sm text-lavender-600">{voice.description}</p>
-          <p className="text-xs text-lavender-400 mt-1 line-clamp-1">
+          <p className="text-sm text-amari-muted">{voice.description}</p>
+          <p className="text-xs text-amari-muted/70 mt-1 line-clamp-1">
             {voice.preview}
           </p>
         </div>

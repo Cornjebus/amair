@@ -131,11 +131,11 @@ export function AudioPlayer({
   };
 
   return (
-    <div className="bg-gradient-to-r from-lavender-50 to-peach-50 rounded-2xl p-6 border-2 border-lavender-200">
+    <div className="bg-gradient-to-r from-amari-cream to-amari-rose/20 rounded-2xl p-6 border-2 border-amari-sand">
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
 
       {title && (
-        <p className="text-sm text-lavender-600 mb-4 font-medium">
+        <p className="text-sm text-amari-muted mb-4 font-medium">
           Now Playing: {title}
         </p>
       )}
@@ -147,7 +147,7 @@ export function AudioPlayer({
           onClick={togglePlay}
           disabled={isLoading}
           size="lg"
-          className="h-14 w-14 rounded-full bg-lavender-600 hover:bg-lavender-700 text-white shadow-lg"
+          className="h-14 w-14 rounded-full bg-amari-terracotta hover:bg-amari-terracotta/90 text-white shadow-lg"
         >
           {isLoading ? (
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -168,7 +168,7 @@ export function AudioPlayer({
             disabled={isLoading}
             className="cursor-pointer"
           />
-          <div className="flex justify-between mt-1 text-xs text-lavender-500">
+          <div className="flex justify-between mt-1 text-xs text-amari-muted">
             <span>{formatTime(currentTime)}</span>
             <span>{formatTime(duration)}</span>
           </div>
@@ -179,7 +179,7 @@ export function AudioPlayer({
           onClick={restart}
           variant="ghost"
           size="icon"
-          className="text-lavender-600 hover:text-lavender-700 hover:bg-lavender-100"
+          className="text-amari-charcoal hover:text-amari-terracotta hover:bg-amari-sand/50"
         >
           <RotateCcw className="h-5 w-5" />
         </Button>
@@ -193,7 +193,7 @@ export function AudioPlayer({
             onClick={toggleMute}
             variant="ghost"
             size="icon"
-            className="text-lavender-600 hover:text-lavender-700 hover:bg-lavender-100"
+            className="text-amari-charcoal hover:text-amari-terracotta hover:bg-amari-sand/50"
           >
             {isMuted ? (
               <VolumeX className="h-5 w-5" />
@@ -216,7 +216,7 @@ export function AudioPlayer({
             onClick={onDownload}
             variant="outline"
             size="sm"
-            className="text-lavender-600 border-lavender-300 hover:bg-lavender-50"
+            className="text-amari-charcoal border-amari-sand hover:bg-amari-sand/50"
           >
             <Download className="h-4 w-4 mr-2" />
             Download MP3

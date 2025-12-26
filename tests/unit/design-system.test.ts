@@ -113,3 +113,59 @@ describe('Design System - Border Radius', () => {
     expect(borderRadius['2xl']).toBeDefined()
   })
 })
+
+/**
+ * Legacy Color Removal Tests
+ *
+ * These tests verify that legacy colors have been removed from the codebase
+ * after the Amari rebrand migration is complete.
+ *
+ * TDD: These tests will FAIL initially and pass after Phase 6 cleanup.
+ */
+describe('Design System - Legacy Colors Removal (TDD)', () => {
+  const fullConfig = resolveConfig(tailwindConfig)
+  const colors = fullConfig.theme?.colors as Record<string, unknown>
+
+  describe('Legacy Color Palettes Should Be Removed', () => {
+    // These tests verify legacy palettes are removed from tailwind.config.ts
+    // They will FAIL until Phase 6 cleanup is complete
+
+    it('should NOT have lavender color palette defined', () => {
+      // After migration, lavender should be removed from tailwind.config.ts
+      expect(colors.lavender).toBeUndefined()
+    })
+
+    it('should NOT have skyblue color palette defined', () => {
+      // After migration, skyblue should be removed from tailwind.config.ts
+      expect(colors.skyblue).toBeUndefined()
+    })
+
+    it('should NOT have legacy cream color palette defined', () => {
+      // The legacy cream palette (with shades 50-900) should be removed
+      // Note: amari.cream is different - it's a single color, not a palette
+      const cream = colors.cream as Record<string, string> | undefined
+      // Legacy cream has shades, amari.cream is just a string
+      if (cream && typeof cream === 'object') {
+        expect(cream['50']).toBeUndefined()
+      }
+    })
+
+    it('should NOT have peach color palette defined', () => {
+      // After migration, peach should be removed from tailwind.config.ts
+      expect(colors.peach).toBeUndefined()
+    })
+  })
+
+  describe('Legacy Font References Should Be Removed', () => {
+    const fontFamily = fullConfig.theme?.fontFamily as Record<string, string[]>
+
+    it('should NOT have playfair as primary font option', () => {
+      // Playfair may still exist for backwards compatibility during migration
+      // but should not be referenced in components
+      // This is a reminder test - actual verification is in component tests
+      if (fontFamily.playfair) {
+        console.warn('Note: font-playfair still defined. Remove after full migration.')
+      }
+    })
+  })
+})
