@@ -79,71 +79,65 @@ export default function DashboardPage() {
   const [isCheckingSubscription, setIsCheckingSubscription] = useState(true)
 
   useEffect(() => {
-    // Force fresh data on navigation - busts Next.js Router Cache
-    // This prevents the "ghost dashboard" issue where stale data flashes
-    router.refresh()
-
     async function loadDashboardData() {
       if (!user) return
 
       try {
-        // First, sync user and check subscription status
-        await fetch('/api/sync-user', { method: 'POST' })
+        // Run ALL API calls in PARALLEL for fastest loading
+        const [, subscriptionResponse, storiesResponse] = await Promise.all([
+          fetch('/api/sync-user', { method: 'POST' }),
+          fetch('/api/subscriptions'),
+          fetch('/api/stories')
+        ])
 
-        // Check subscription FIRST before loading any dashboard data
-        const subscriptionResponse = await fetch('/api/subscriptions')
-
-        if (subscriptionResponse.ok) {
-          const subData = await subscriptionResponse.json()
-
-          // If user requires subscription (no active plan), redirect to pricing immediately
-          if (subData.requiresSubscription) {
-            router.replace('/pricing?onboarding=true')
-            return // Don't load anything else
-          }
-
-          // User has subscription - now load dashboard data
-          setIsCheckingSubscription(false)
-
-          setSubscription({
-            tier: subData.tier || 'free',
-            status: subData.status || 'free',
-            storiesUsed: subData.storiesUsed || 0,
-            storiesLimit: subData.limits?.storiesPerMonth || 3,
-            premiumVoicesUsed: subData.premiumVoicesUsed || 0,
-            premiumVoicesLimit: subData.limits?.premiumVoicesPerMonth || 0,
-            currentPeriodEnd: subData.currentPeriodEnd || null,
-            isOnTrial: subData.isOnTrial || false,
-            trialEnd: subData.trialEnd || null,
-            trialDaysRemaining: subData.trialDaysRemaining || 0,
-          })
-
-          // Now load stories
-          const storiesResponse = await fetch('/api/stories')
-          if (storiesResponse.ok) {
-            const data = await storiesResponse.json()
-            const stories = data.stories || []
-            const now = new Date()
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-
-            const monthStories = stories.filter((story: any) =>
-              new Date(story.created_at) >= startOfMonth
-            )
-
-            setStats({
-              totalStories: stories.length,
-              thisMonth: monthStories.length,
-            })
-            setRecentStories(stories.slice(0, 3))
-          }
-        } else {
-          // If subscription fetch fails, redirect to pricing
+        if (!subscriptionResponse.ok) {
           router.replace('/pricing?onboarding=true')
           return
         }
+
+        const subData = await subscriptionResponse.json()
+
+        // If user requires subscription (no active plan), redirect to pricing immediately
+        if (subData.requiresSubscription) {
+          router.replace('/pricing?onboarding=true')
+          return
+        }
+
+        // User has subscription - process data
+        setIsCheckingSubscription(false)
+
+        setSubscription({
+          tier: subData.tier || 'free',
+          status: subData.status || 'free',
+          storiesUsed: subData.storiesUsed || 0,
+          storiesLimit: subData.limits?.storiesPerMonth || 3,
+          premiumVoicesUsed: subData.premiumVoicesUsed || 0,
+          premiumVoicesLimit: subData.limits?.premiumVoicesPerMonth || 0,
+          currentPeriodEnd: subData.currentPeriodEnd || null,
+          isOnTrial: subData.isOnTrial || false,
+          trialEnd: subData.trialEnd || null,
+          trialDaysRemaining: subData.trialDaysRemaining || 0,
+        })
+
+        // Process stories (already fetched in parallel)
+        if (storiesResponse.ok) {
+          const data = await storiesResponse.json()
+          const stories = data.stories || []
+          const now = new Date()
+          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+
+          const monthStories = stories.filter((story: any) =>
+            new Date(story.created_at) >= startOfMonth
+          )
+
+          setStats({
+            totalStories: stories.length,
+            thisMonth: monthStories.length,
+          })
+          setRecentStories(stories.slice(0, 3))
+        }
       } catch (error) {
         console.error('Error loading dashboard:', error)
-        // On error, redirect to pricing as a fallback
         router.replace('/pricing?onboarding=true')
       } finally {
         setLoading(false)
