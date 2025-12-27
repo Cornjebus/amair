@@ -8,7 +8,6 @@ import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Sparkles, BookOpen, Zap, Crown, Star, ArrowRight, Gift, Mic, Clock } from 'lucide-react'
-import { SkeletonDashboard } from '@/components/ui/skeleton'
 
 // Subscription tier configuration with Amari colors
 const TIER_CONFIG = {
@@ -75,8 +74,6 @@ export default function DashboardPage() {
     trialDaysRemaining: 0,
   })
   const [recentStories, setRecentStories] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [isCheckingSubscription, setIsCheckingSubscription] = useState(true)
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -104,8 +101,6 @@ export default function DashboardPage() {
         }
 
         // User has subscription - process data
-        setIsCheckingSubscription(false)
-
         setSubscription({
           tier: subData.tier || 'free',
           status: subData.status || 'free',
@@ -139,22 +134,11 @@ export default function DashboardPage() {
       } catch (error) {
         console.error('Error loading dashboard:', error)
         router.replace('/pricing?onboarding=true')
-      } finally {
-        setLoading(false)
       }
     }
 
     loadDashboardData()
   }, [user, router])
-
-  // Show skeleton loading while checking subscription
-  if (isCheckingSubscription || loading) {
-    return (
-      <div className="max-w-6xl mx-auto py-8">
-        <SkeletonDashboard />
-      </div>
-    )
-  }
 
   const tierConfig = TIER_CONFIG[subscription.tier] || TIER_CONFIG.free
   const TierIcon = tierConfig.icon
