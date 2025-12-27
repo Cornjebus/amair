@@ -3,7 +3,6 @@ import { auth } from '@clerk/nextjs/server';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { captureError } from '@/lib/monitoring/sentry';
 import { TIER_CONFIG, getTrialDaysRemaining } from '@/lib/subscription/tiers';
-import { getStripe } from '@/lib/stripe/server';
 import type { SubscriptionTier } from '@/lib/subscription/types';
 
 // User subscription type (not in generated types yet)
@@ -90,24 +89,17 @@ export async function GET() {
     const tier = subscription.tier as SubscriptionTier;
     const limits = TIER_CONFIG[tier] || TIER_CONFIG.free;
 
-    // Check for trial status from Stripe if we have a subscription ID
+    // Check for trial status from database (avoid slow Stripe API call)
+    // Trial info is synced from Stripe webhooks
     let isOnTrial = false;
-    let trialEnd: string | null = null;
+    let trialEnd: string | null = subscription.trial_end || null;
     let trialDaysRemaining = 0;
 
-    if (subscription.stripe_subscription_id) {
-      try {
-        const stripe = getStripe();
-        const stripeSubscription = await stripe.subscriptions.retrieve(subscription.stripe_subscription_id);
-
-        if (stripeSubscription.status === 'trialing' && stripeSubscription.trial_end) {
-          isOnTrial = true;
-          trialEnd = new Date(stripeSubscription.trial_end * 1000).toISOString();
-          trialDaysRemaining = getTrialDaysRemaining(trialEnd);
-        }
-      } catch (error) {
-        // If Stripe fetch fails, continue without trial info
-        console.warn('[Subscriptions] Failed to fetch Stripe subscription for trial info:', error);
+    if (trialEnd) {
+      const trialEndDate = new Date(trialEnd);
+      if (trialEndDate > new Date()) {
+        isOnTrial = true;
+        trialDaysRemaining = getTrialDaysRemaining(trialEnd);
       }
     }
 

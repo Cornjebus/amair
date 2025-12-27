@@ -3,6 +3,7 @@ import { auth, currentUser } from '@clerk/nextjs/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { syncUserToSupabase } from '@/lib/supabase/sync-user'
 import { createStoryOrchestrator, StoryGenerationOptions } from '@/lib/story/orchestrator'
+// Note: currentUser and syncUserToSupabase are still used in POST for story creation
 import { InsufficientCreditsError } from '@/lib/credits/credit-service'
 import { captureError } from '@/lib/monitoring/sentry'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
@@ -35,30 +36,28 @@ const generateStorySchema = z.object({
 
 export async function GET() {
   try {
-    const { userId } = await auth()
+    const { userId: clerkUserId } = await auth()
 
-    if (!userId) {
+    if (!clerkUserId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
 
-    // Get Clerk user details
-    const clerkUser = await currentUser()
+    // Get user directly from Supabase (sync is done by /api/sync-user)
+    const { data: user, error: userError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('clerk_id', clerkUserId)
+      .single()
 
-    if (!clerkUser) {
+    if (userError || !user) {
       return NextResponse.json(
-        { error: 'User not found in Clerk' },
+        { error: 'User not found' },
         { status: 404 }
       )
     }
-
-    // Sync user to Supabase (creates if doesn't exist)
-    const user = await syncUserToSupabase(
-      userId,
-      clerkUser.emailAddresses[0]?.emailAddress || ''
-    )
 
     // Get user's stories
     const { data: stories, error } = await supabaseAdmin
