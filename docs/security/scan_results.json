@@ -1,0 +1,85 @@
+{
+  "scan_timestamp": "2025-12-26T00:00:00Z",
+  "total_vulnerabilities": 2,
+  "by_severity": {
+    "CRITICAL": 0,
+    "HIGH": 0,
+    "MEDIUM": 1,
+    "LOW": 1
+  },
+  "vulnerabilities": [
+    {
+      "id": "CMD-INJ-001",
+      "severity": "MEDIUM",
+      "title": "Potential Command Injection in GitHub Helper Script",
+      "file": ".claude/helpers/github-safe.js",
+      "lines": [80, 101, 105],
+      "description": "The script joins command arguments with spaces and passes them directly to execSync() without proper escaping. While intended as a helper script, malicious arguments could execute arbitrary commands.",
+      "code_snippet": "execSync(`gh ${args.join(' ')}`, { stdio: 'inherit' })",
+      "risk_score": 5.5,
+      "exploitability": "Requires local access or malicious input to the script",
+      "remediation": "Use shell escaping library or spawn with array arguments instead of string concatenation"
+    },
+    {
+      "id": "CMD-INJ-002",
+      "severity": "LOW",
+      "title": "Command Execution in Development Script",
+      "file": "scripts/lighthouse-audit.ts",
+      "lines": [60, 69, 73],
+      "description": "Uses template strings in exec() calls. Low risk as BASE_URL comes from environment variables and script is for development/CI only.",
+      "code_snippet": "await execAsync(command, { maxBuffer: 50 * 1024 * 1024 })",
+      "risk_score": 2.5,
+      "exploitability": "Requires environment variable manipulation",
+      "remediation": "Consider using spawn with argument arrays for better security"
+    }
+  ],
+  "safe_patterns_found": [
+    {
+      "pattern": "dangerouslySetInnerHTML",
+      "file": "components/accessibility/ReducedMotion.tsx",
+      "status": "SAFE",
+      "reason": "Only uses controlled boolean values, no user input reaches this code"
+    }
+  ],
+  "positive_findings": {
+    "npm_audit": {
+      "vulnerabilities": 0,
+      "status": "CLEAN"
+    },
+    "osv_scan": {
+      "cves": 0,
+      "status": "CLEAN"
+    },
+    "input_validation": {
+      "zod_schemas": true,
+      "regex_patterns": true,
+      "length_limits": true,
+      "status": "STRONG"
+    },
+    "content_moderation": {
+      "input_filter": "lib/security/content-filter.ts",
+      "output_moderator": "lib/security/output-moderator.ts",
+      "status": "IMPLEMENTED"
+    },
+    "authentication": {
+      "provider": "Clerk",
+      "all_routes_protected": true,
+      "status": "IMPLEMENTED"
+    },
+    "rate_limiting": {
+      "provider": "Upstash",
+      "suspicious_pattern_detection": true,
+      "status": "IMPLEMENTED"
+    },
+    "secrets_management": {
+      "env_files_gitignored": true,
+      "no_hardcoded_secrets": true,
+      "status": "SECURE"
+    }
+  },
+  "react_to_shell_analysis": {
+    "paths_found": 0,
+    "status": "NO_RISK",
+    "details": "No execution paths from React components to shell commands. All API routes use proper input validation."
+  }
+}

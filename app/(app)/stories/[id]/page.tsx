@@ -32,7 +32,6 @@ export default function StoryDetailPage() {
   const router = useRouter()
   const { user } = useUser()
   const [story, setStory] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [storyImages, setStoryImages] = useState<StoryImage[]>([])
 
@@ -97,8 +96,6 @@ export default function StoryDetailPage() {
       } catch (error) {
         console.error('Error loading data:', error)
         router.push('/stories')
-      } finally {
-        setLoading(false)
       }
     }
 
@@ -368,19 +365,6 @@ export default function StoryDetailPage() {
     : 0
 
   const canDownload = hasPremiumAccess ?? false
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="text-center">
-          <div className="flex justify-center mb-4">
-            <LogoInline size="sm" className="animate-pulse" />
-          </div>
-          <p className="text-amari-muted">Loading story...</p>
-        </div>
-      </div>
-    )
-  }
 
   if (!story) {
     return null

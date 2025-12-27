@@ -23,7 +23,6 @@ export default function ProfileSettingsPage() {
   const { success, error } = useToast();
   const { confirmDelete } = useConfirmation();
   const [children, setChildren] = useState<ChildProfile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editingChild, setEditingChild] = useState<string | null>(null);
   const [newChild, setNewChild] = useState({ name: '', age: '' });
   const [showAddChild, setShowAddChild] = useState(false);
@@ -39,8 +38,6 @@ export default function ProfileSettingsPage() {
         }
       } catch (err) {
         console.error('Error loading children:', err);
-      } finally {
-        setLoading(false);
       }
     }
     if (isLoaded) {
@@ -87,12 +84,8 @@ export default function ProfileSettingsPage() {
     if (!confirmed) return;
   };
 
-  if (!isLoaded || loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-amari-terracotta" />
-      </div>
-    );
+  if (!isLoaded) {
+    return null;
   }
 
   return (

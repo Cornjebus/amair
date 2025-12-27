@@ -1,0 +1,41 @@
+{
+  "scan_root": "/Users/corneliusgeorge/amair",
+  "dependencies": [
+    {"name": "@anthropic-ai/sdk", "version": "0.71.1", "type": "npm"},
+    {"name": "@clerk/nextjs", "version": "5.0.0", "type": "npm"},
+    {"name": "@elevenlabs/elevenlabs-js", "version": "2.27.0", "type": "npm"},
+    {"name": "@sentry/nextjs", "version": "10.31.0", "type": "npm"},
+    {"name": "@stripe/stripe-js", "version": "3.0.0", "type": "npm"},
+    {"name": "@supabase/supabase-js", "version": "2.39.0", "type": "npm"},
+    {"name": "@upstash/ratelimit", "version": "2.0.7", "type": "npm"},
+    {"name": "@upstash/redis", "version": "1.35.7", "type": "npm"},
+    {"name": "framer-motion", "version": "11.18.2", "type": "npm"},
+    {"name": "inngest", "version": "3.47.0", "type": "npm"},
+    {"name": "next", "version": "14.2.35", "type": "npm"},
+    {"name": "openai", "version": "4.28.0", "type": "npm"},
+    {"name": "posthog-js", "version": "1.302.2", "type": "npm"},
+    {"name": "react", "version": "18.2.0", "type": "npm"},
+    {"name": "react-dom", "version": "18.2.0", "type": "npm"},
+    {"name": "resend", "version": "6.6.0", "type": "npm"},
+    {"name": "stripe", "version": "19.3.1", "type": "npm"},
+    {"name": "svix", "version": "1.81.0", "type": "npm"},
+    {"name": "zod", "version": "3.22.4", "type": "npm"},
+    {"name": "zustand", "version": "4.5.0", "type": "npm"}
+  ],
+  "containers": [],
+  "cloud_configs": [],
+  "secrets_exposure": {
+    "env_files_found": [
+      ".env.local",
+      ".env.vercel.local",
+      ".env.example"
+    ],
+    "risk": "LOW"
+  },
+  "summary": {
+    "total_dependencies": 58,
+    "container_configs": 0,
+    "cloud_configs": 0,
+    "secrets_risk": "LOW"
+  }
+}

@@ -49,7 +49,6 @@ interface SubscriptionData {
 export default function SubscriptionSettingsPage() {
   const router = useRouter()
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null)
-  const [loading, setLoading] = useState(true)
   const [managingBilling, setManagingBilling] = useState(false)
 
   useEffect(() => {
@@ -62,8 +61,6 @@ export default function SubscriptionSettingsPage() {
         }
       } catch (error) {
         console.error('Error loading subscription:', error)
-      } finally {
-        setLoading(false)
       }
     }
     loadSubscription()
@@ -84,14 +81,6 @@ export default function SubscriptionSettingsPage() {
     } finally {
       setManagingBilling(false)
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-amari-terracotta" />
-      </div>
-    )
   }
 
   if (!subscription) {

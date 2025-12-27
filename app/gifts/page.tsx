@@ -67,7 +67,6 @@ export default function GiftsPage() {
 function GiftsPageContent() {
   const [packages, setPackages] = useState<GiftPackage[]>([]);
   const [selectedPackage, setSelectedPackage] = useState<GiftPackage | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const router = useRouter();
   const { warning, error: showError } = useToast();
@@ -92,8 +91,6 @@ function GiftsPageContent() {
       setPackages(data.packages || []);
     } catch (error) {
       console.error('Error fetching packages:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -198,13 +195,7 @@ function GiftsPageContent() {
       {step === 'select' && (
         <section className="py-8 px-4">
           <div className="max-w-6xl mx-auto">
-            {isLoading ? (
-              <div className="text-center py-12">
-                <div className="animate-spin h-8 w-8 border-4 border-amari-terracotta border-t-transparent rounded-full mx-auto" />
-                <p className="mt-4 text-amari-muted">Loading gift packages...</p>
-              </div>
-            ) : (
-              Object.entries(packagesByTier).map(([tier, tierPackages]) => (
+            {Object.entries(packagesByTier).map(([tier, tierPackages]) => (
                 <div key={tier} className="mb-12">
                   <div className="flex items-center gap-2 mb-6">
                     <span className={tierConfig[tier]?.text || 'text-amari-charcoal'}>
@@ -246,8 +237,7 @@ function GiftsPageContent() {
                     ))}
                   </div>
                 </div>
-              ))
-            )}
+              ))}
           </div>
         </section>
       )}

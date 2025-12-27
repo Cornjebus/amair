@@ -9,13 +9,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Sparkles, Search, Filter } from 'lucide-react'
 import { supabase } from '@/lib/supabase/client'
-import { SkeletonStoriesGrid } from '@/components/ui/skeleton'
 
 export default function StoriesPage() {
   const { user } = useUser()
   const [stories, setStories] = useState<any[]>([])
   const [filteredStories, setFilteredStories] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [filterTone, setFilterTone] = useState<string>('all')
 
@@ -35,8 +33,6 @@ export default function StoriesPage() {
         }
       } catch (error) {
         console.error('Error loading stories:', error)
-      } finally {
-        setLoading(false)
       }
     }
 
@@ -61,14 +57,6 @@ export default function StoriesPage() {
 
     setFilteredStories(filtered)
   }, [searchQuery, filterTone, stories])
-
-  if (loading) {
-    return (
-      <div className="max-w-6xl mx-auto">
-        <SkeletonStoriesGrid />
-      </div>
-    )
-  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
