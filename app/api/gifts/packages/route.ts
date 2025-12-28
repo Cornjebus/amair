@@ -1,22 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/server';
+import { getDatabase } from '@/lib/database';
 import { captureError } from '@/lib/monitoring/sentry';
 import { checkRateLimit, rateLimitResponse, getClientIP } from '@/lib/rate-limit';
 import { logger } from '@/lib/logging';
-
-// Type for gift package (tables not in generated types yet)
-interface GiftPackage {
-  id: string;
-  name: string;
-  slug: string;
-  tier: string;
-  duration_months: number;
-  price_cents: number;
-  currency: string;
-  description: string;
-  is_active: boolean;
-  display_order: number;
-}
 
 // =============================================================================
 // GET /api/gifts/packages - Get all gift packages (public)
@@ -31,32 +17,40 @@ export async function GET(request: NextRequest) {
       return rateLimitResponse(rateLimit);
     }
 
-    // Cast to any to bypass strict type checking until migration runs
-    const { data: packages, error } = await (supabaseAdmin as any)
-      .from('gift_packages')
-      .select('*')
-      .eq('is_active', true)
-      .order('display_order', { ascending: true }) as { data: GiftPackage[] | null; error: any };
+    const db = await getDatabase();
 
-    if (error) {
-      throw error;
-    }
+    // Get active gift packages using DAL
+    const packages = await db.gifts.getPackages({ activeOnly: true });
+
+    // Map to API response format (snake_case for backwards compatibility)
+    const formattedPackages = packages.map(pkg => ({
+      id: pkg.id,
+      name: pkg.name,
+      slug: pkg.slug,
+      tier: pkg.tier,
+      duration_months: pkg.durationMonths,
+      price_cents: pkg.priceCents,
+      currency: pkg.currency,
+      description: pkg.description,
+      is_active: pkg.isActive,
+      display_order: pkg.displayOrder,
+    }));
 
     // Group by tier for easier frontend consumption
-    const grouped: Record<string, GiftPackage[]> = {
+    const grouped: Record<string, typeof formattedPackages> = {
       dream_weaver: [],
       magic_circle: [],
       enchanted_library: [],
     };
 
-    for (const pkg of packages || []) {
+    for (const pkg of formattedPackages) {
       if (grouped[pkg.tier]) {
         grouped[pkg.tier].push(pkg);
       }
     }
 
     return NextResponse.json({
-      packages: packages || [],
+      packages: formattedPackages,
       byTier: grouped,
     });
   } catch (error) {

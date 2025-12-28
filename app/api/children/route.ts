@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-import { supabaseAdmin } from '@/lib/supabase/server'
-import { syncUserToSupabase } from '@/lib/supabase/sync-user'
+import { getDatabase } from '@/lib/database'
 import { captureError } from '@/lib/monitoring/sentry'
 
 // =============================================================================
@@ -16,29 +15,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user from Clerk ID
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('clerk_id', clerkUserId)
-      .single()
+    const db = await getDatabase()
 
-    if (userError || !user) {
+    // Get user from Clerk ID
+    const user = await db.users.findByClerkId(clerkUserId)
+
+    if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     // Get all children for this user
-    const { data: children, error } = await supabaseAdmin
-      .from('children')
-      .select('id, name, age, avatar_url, created_at, updated_at')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    const children = await db.children.findByUserId(user.id)
 
-    if (error) {
-      throw error
-    }
+    // Map to API response format (snake_case for backwards compatibility)
+    const formattedChildren = children.map(child => ({
+      id: child.id,
+      name: child.name,
+      age: child.age,
+      avatar_url: child.avatarUrl,
+      created_at: child.createdAt,
+      updated_at: child.updatedAt,
+    }))
 
-    return NextResponse.json({ children })
+    return NextResponse.json({ children: formattedChildren })
   } catch (error) {
     captureError(error as Error, { action: 'list_children' })
     console.error('[children] Error listing children:', error)
@@ -61,14 +60,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user from Clerk ID
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('clerk_id', clerkUserId)
-      .single()
+    const db = await getDatabase()
 
-    if (userError || !user) {
+    // Get user from Clerk ID
+    const user = await db.users.findByClerkId(clerkUserId)
+
+    if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
@@ -94,25 +91,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create child profile
-    const { data: child, error } = await supabaseAdmin
-      .from('children')
-      .insert({
-        user_id: user.id,
-        name: name.trim(),
-        age: age ? parseInt(age, 10) : null,
-        avatar_url: avatar_url || null,
-      })
-      .select()
-      .single()
-
-    if (error) {
-      throw error
-    }
+    // Create child profile using DAL
+    const child = await db.children.create({
+      userId: user.id,
+      name: name.trim(),
+      age: age ? parseInt(age, 10) : null,
+      avatarUrl: avatar_url || null,
+    })
 
     console.log('[children] Created child profile:', child.id, child.name)
 
-    return NextResponse.json({ child }, { status: 201 })
+    // Map to API response format (snake_case for backwards compatibility)
+    const formattedChild = {
+      id: child.id,
+      user_id: child.userId,
+      name: child.name,
+      age: child.age,
+      avatar_url: child.avatarUrl,
+      created_at: child.createdAt,
+      updated_at: child.updatedAt,
+    }
+
+    return NextResponse.json({ child: formattedChild }, { status: 201 })
   } catch (error) {
     captureError(error as Error, { action: 'create_child' })
     console.error('[children] Error creating child:', error)

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { getDatabase } from '@/lib/database';
 import { supabaseAdmin } from '@/lib/supabase/server';
 import { CreditService } from '@/lib/credits/credit-service';
 import { captureError } from '@/lib/monitoring/sentry';
@@ -20,52 +21,39 @@ export async function GET() {
       );
     }
 
-    // Get user from Clerk ID
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('clerk_id', userId)
-      .single();
+    const db = await getDatabase();
 
-    if (userError || !user) {
+    // Get user from Clerk ID using DAL
+    const user = await db.users.findByClerkId(userId);
+
+    if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    const creditService = new CreditService(supabaseAdmin);
+    // Get credit account using DAL
+    let account = await db.credits.getAccount(user.id);
 
-    try {
-      const balance = await creditService.getBalance(user.id);
-
-      // Get full account info
-      const { data: account } = await supabaseAdmin
-        .from('credit_accounts')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      return NextResponse.json({
-        balance,
-        lifetimeCredits: account?.lifetime_credits ?? 0,
-        tier: account?.tier ?? 'free',
-        createdAt: account?.created_at,
-      });
-    } catch {
+    if (!account) {
       // Account doesn't exist, create one
-      const newAccount = await creditService.createAccount(user.id);
-      // Cast to DB record type which uses snake_case
-      const dbAccount = newAccount as unknown as Record<string, unknown>;
-
+      account = await db.credits.createAccount(user.id);
       return NextResponse.json({
-        balance: dbAccount.balance ?? 10,
-        lifetimeCredits: dbAccount.lifetime_credits ?? 10,
-        tier: dbAccount.tier ?? 'free',
-        createdAt: dbAccount.created_at ?? new Date().toISOString(),
+        balance: account.balance,
+        lifetimeCredits: account.lifetimeCredits,
+        tier: account.tier ?? 'free',
+        createdAt: account.createdAt,
         isNew: true,
       });
     }
+
+    return NextResponse.json({
+      balance: account.balance,
+      lifetimeCredits: account.lifetimeCredits,
+      tier: account.tier ?? 'free',
+      createdAt: account.createdAt,
+    });
   } catch (error) {
     captureError(error as Error, { action: 'get_credits' });
     return NextResponse.json(
@@ -113,20 +101,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get user from Clerk ID
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('clerk_id', userId)
-      .single();
+    const db = await getDatabase();
 
-    if (userError || !user) {
+    // Get user from Clerk ID using DAL
+    const user = await db.users.findByClerkId(userId);
+
+    if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
+    // Still use CreditService for write operations (Phase 3)
     const creditService = new CreditService(supabaseAdmin);
 
     // Check if user has enough credits

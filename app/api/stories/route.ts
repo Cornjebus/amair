@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
+import { getDatabase } from '@/lib/database'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { syncUserToSupabase } from '@/lib/supabase/sync-user'
 import { createStoryOrchestrator, StoryGenerationOptions } from '@/lib/story/orchestrator'
-// Note: currentUser and syncUserToSupabase are still used in POST for story creation
 import { InsufficientCreditsError } from '@/lib/credits/credit-service'
 import { captureError } from '@/lib/monitoring/sentry'
 import { checkRateLimit, rateLimitResponse } from '@/lib/rate-limit'
@@ -45,33 +45,45 @@ export async function GET() {
       )
     }
 
-    // Get user directly from Supabase (sync is done by /api/sync-user)
-    const { data: user, error: userError } = await supabaseAdmin
-      .from('users')
-      .select('id')
-      .eq('clerk_id', clerkUserId)
-      .single()
+    const db = await getDatabase()
 
-    if (userError || !user) {
+    // Get user from Clerk ID using DAL
+    const user = await db.users.findByClerkId(clerkUserId)
+
+    if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       )
     }
 
-    // Get user's stories
-    const { data: stories, error } = await supabaseAdmin
-      .from('stories')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+    // Get user's stories using DAL
+    const stories = await db.stories.findByUserId(user.id)
 
-    if (error) {
-      console.error('Error fetching stories:', error)
-      throw error
-    }
+    // Map to API response format (snake_case for backwards compatibility)
+    const formattedStories = stories.map(story => ({
+      id: story.id,
+      user_id: story.userId,
+      title: story.title,
+      content: story.content,
+      length: story.length,
+      tone: story.tone,
+      word_count: story.wordCount,
+      ai_provider: story.aiProvider,
+      ai_model: story.aiModel,
+      voice_provider: story.voiceProvider,
+      voice_config: story.voiceConfig,
+      audio_url: story.audioUrl,
+      is_favorite: story.isFavorite,
+      rating: story.rating,
+      quality_score: story.qualityScore,
+      feedback: story.feedback,
+      regeneration_count: story.regenerationCount,
+      created_at: story.createdAt,
+      updated_at: story.updatedAt,
+    }))
 
-    return NextResponse.json({ stories })
+    return NextResponse.json({ stories: formattedStories })
   } catch (error) {
     console.error('Error fetching stories:', error)
     return NextResponse.json(
@@ -111,7 +123,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Sync user to Supabase
+    // Sync user to Supabase (still needed for orchestrator)
     const user = await syncUserToSupabase(
       clerkId,
       clerkUser.emailAddresses[0]?.emailAddress || ''
@@ -133,22 +145,19 @@ export async function POST(request: NextRequest) {
 
     const options: StoryGenerationOptions = validationResult.data
 
-    // Verify child belongs to user
-    const { data: child, error: childError } = await supabaseAdmin
-      .from('children')
-      .select('id, name')
-      .eq('id', options.childId)
-      .eq('user_id', user.id)
-      .single()
+    const db = await getDatabase()
 
-    if (childError || !child) {
+    // Verify child belongs to user using DAL
+    const child = await db.children.findByIdAndUserId(options.childId, user.id)
+
+    if (!child) {
       return NextResponse.json(
         { error: 'Child not found or does not belong to user' },
         { status: 404 }
       )
     }
 
-    // Create orchestrator and calculate cost
+    // Create orchestrator and calculate cost (still uses supabaseAdmin for now)
     const orchestrator = createStoryOrchestrator(supabaseAdmin, user.id)
     const cost = orchestrator.calculateCost(options)
 
@@ -195,11 +204,10 @@ export async function POST(request: NextRequest) {
 }
 
 // =============================================================================
-// POST /api/stories/cost - Preview cost without generating
+// OPTIONS - CORS preflight
 // =============================================================================
 
 export async function OPTIONS(request: NextRequest) {
-  // Return CORS headers for preflight
   return new NextResponse(null, {
     status: 204,
     headers: {
