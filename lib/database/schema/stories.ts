@@ -22,6 +22,13 @@ export const stories = pgTable('stories', {
   qualityScore: integer('quality_score'),
   feedback: text('feedback'),
   regenerationCount: integer('regeneration_count').default(0),
+  artStyle: varchar('art_style', { length: 50 }),
+  hasIllustrations: boolean('has_illustrations').default(false),
+  illustrationCount: integer('illustration_count').default(0),
+  generationCost: integer('generation_cost'),
+  tokensUsed: integer('tokens_used'),
+  ratedAt: timestamp('rated_at', { mode: 'string' }),
+  metadata: jsonb('metadata'),
   createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow(),
 });

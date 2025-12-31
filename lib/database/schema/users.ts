@@ -14,6 +14,7 @@ export const users = pgTable('users', {
   subscriptionEndDate: timestamp('subscription_end_date', { mode: 'string' }),
   subscriptionPeriodStart: timestamp('subscription_period_start', { mode: 'string' }),
   currentPeriodEnd: timestamp('current_period_end', { mode: 'string' }),
+  preferredAiProvider: varchar('preferred_ai_provider', { length: 50 }),
   createdAt: timestamp('created_at', { mode: 'string' }).defaultNow(),
   updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow(),
 });
