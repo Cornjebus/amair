@@ -7,6 +7,7 @@ export * from './stories';
 export * from './credits';
 export * from './subscriptions';
 export * from './gifts';
+export * from './universe';
 
 // Re-export all tables for schema inference
 import { users, children } from './users';
@@ -14,6 +15,7 @@ import { stories, storySeeds, dailyChallenges } from './stories';
 import { creditAccounts, creditTransactions, creditCosts, creditPackages, creditPurchases } from './credits';
 import { userSubscriptions, subscriptionPrices, tierLimits, subscriptionHistory, usageTracking } from './subscriptions';
 import { giftPackages, giftSubscriptions } from './gifts';
+import { familyUniverses, characters, storyCharacters, storyMemories } from './universe';
 
 // Combined schema export for Drizzle
 export const schema = {
@@ -39,4 +41,9 @@ export const schema = {
   // Gifts
   giftPackages,
   giftSubscriptions,
+  // Universe
+  familyUniverses,
+  characters,
+  storyCharacters,
+  storyMemories,
 };

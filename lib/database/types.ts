@@ -2,7 +2,32 @@ import type { User, NewUser, Child, NewChild } from './schema/users';
 import type { Story, NewStory } from './schema/stories';
 import type { CreditAccount, CreditTransaction, NewCreditTransaction, CreditPackage } from './schema/credits';
 import type { UserSubscription, TierLimit, UsageTrackingEntry, NewUsageTrackingEntry } from './schema/subscriptions';
+import type { SubscriptionTier } from './schema/enums';
 import type { GiftPackage, GiftSubscription } from './schema/gifts';
+import type { FamilyUniverse, NewFamilyUniverse, Character, NewCharacter } from './schema/universe';
+
+// RPC-equivalent function result types
+
+export interface AddCreditsResult {
+  success: boolean;
+  newBalance: number;
+  transactionId: string | null;
+  errorMessage: string | null;
+}
+
+export interface RedeemGiftCodeResult {
+  success: boolean;
+  errorMessage: string | null;
+  tier: SubscriptionTier | null;
+  durationMonths: number;
+  newPeriodEnd: string | null;
+}
+
+export interface RecordStoryGenerationResult {
+  success: boolean;
+  storiesRemaining: number;
+  premiumVoicesRemaining: number;
+}
 
 // Repository interfaces for database abstraction layer
 
@@ -67,6 +92,15 @@ export interface GiftRepository {
   updateSubscription(id: string, data: Partial<GiftSubscription>): Promise<GiftSubscription | null>;
 }
 
+export interface UniverseRepository {
+  getOrCreateUniverse(userId: string): Promise<string>; // Returns universe ID
+  findByUserId(userId: string): Promise<FamilyUniverse | null>;
+  update(userId: string, data: Partial<FamilyUniverse>): Promise<FamilyUniverse | null>;
+  getCharacters(userId: string, options?: { activeOnly?: boolean }): Promise<Character[]>;
+  createCharacter(data: NewCharacter): Promise<Character>;
+  updateCharacter(id: string, data: Partial<Character>): Promise<Character | null>;
+}
+
 // Main Database Abstraction Layer interface
 export interface DatabaseAbstractionLayer {
   users: UserRepository;
@@ -76,6 +110,20 @@ export interface DatabaseAbstractionLayer {
   subscriptions: SubscriptionRepository;
   usage: UsageRepository;
   gifts: GiftRepository;
+  universe: UniverseRepository;
+
+  // RPC-equivalent functions (atomic transactions)
+  addCredits(
+    userId: string,
+    amount: number,
+    type: 'purchase' | 'usage' | 'bonus' | 'refund' | 'gift' | 'subscription' | 'adjustment',
+    description: string,
+    metadata?: Record<string, unknown>
+  ): Promise<AddCreditsResult>;
+
+  redeemGiftCode(userId: string, redemptionCode: string): Promise<RedeemGiftCodeResult>;
+
+  recordStoryGeneration(userId: string, usedPremiumVoice?: boolean): Promise<RecordStoryGenerationResult>;
 
   // Transaction support
   transaction<T>(fn: (tx: DatabaseAbstractionLayer) => Promise<T>): Promise<T>;

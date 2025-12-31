@@ -8,12 +8,18 @@ import type {
   SubscriptionRepository,
   UsageRepository,
   GiftRepository,
+  UniverseRepository,
+  AddCreditsResult,
+  RedeemGiftCodeResult,
+  RecordStoryGenerationResult,
 } from '../types';
 import type { User, NewUser, Child, NewChild } from '../schema/users';
 import type { Story, NewStory } from '../schema/stories';
 import type { CreditAccount, CreditTransaction, NewCreditTransaction, CreditPackage } from '../schema/credits';
 import type { UserSubscription, TierLimit, UsageTrackingEntry, NewUsageTrackingEntry } from '../schema/subscriptions';
 import type { GiftPackage, GiftSubscription } from '../schema/gifts';
+import type { FamilyUniverse, Character, NewCharacter } from '../schema/universe';
+import type { SubscriptionTier } from '../schema/enums';
 
 // Supabase User Repository
 const userRepository: UserRepository = {
@@ -588,6 +594,7 @@ function mapSupabaseUser(data: any): User {
     subscriptionEndDate: data.subscription_end_date,
     subscriptionPeriodStart: data.subscription_period_start,
     currentPeriodEnd: data.current_period_end,
+    preferredAiProvider: data.preferred_ai_provider,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -624,6 +631,13 @@ function mapSupabaseStory(data: any): Story {
     qualityScore: data.quality_score,
     feedback: data.feedback,
     regenerationCount: data.regeneration_count,
+    artStyle: data.art_style,
+    hasIllustrations: data.has_illustrations,
+    illustrationCount: data.illustration_count,
+    generationCost: data.generation_cost,
+    tokensUsed: data.tokens_used,
+    ratedAt: data.rated_at,
+    metadata: data.metadata,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
@@ -766,6 +780,238 @@ function mapSupabaseGiftSubscription(data: any): GiftSubscription {
   };
 }
 
+// Supabase Universe Repository
+// Note: Uses type assertions since these tables are not yet in the generated Supabase types
+const universeRepository: UniverseRepository = {
+  async getOrCreateUniverse(userId: string): Promise<string> {
+    // Use raw RPC call with type assertion
+    const { data, error } = await (supabaseAdmin as any).rpc('get_or_create_universe', { p_user_id: userId });
+    if (error) throw error;
+    return data as string;
+  },
+
+  async findByUserId(userId: string): Promise<FamilyUniverse | null> {
+    const { data, error } = await (supabaseAdmin as any)
+      .from('family_universes')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    if (error || !data) return null;
+    return mapSupabaseFamilyUniverse(data);
+  },
+
+  async update(userId: string, updateData: Partial<FamilyUniverse>): Promise<FamilyUniverse | null> {
+    const mapped: Record<string, any> = {};
+    if (updateData.universeName !== undefined) mapped.universe_name = updateData.universeName;
+    if (updateData.description !== undefined) mapped.description = updateData.description;
+    if (updateData.defaultArtStyle !== undefined) mapped.default_art_style = updateData.defaultArtStyle;
+    if (updateData.defaultTone !== undefined) mapped.default_tone = updateData.defaultTone;
+    if (updateData.enableCharacterContinuity !== undefined) mapped.enable_character_continuity = updateData.enableCharacterContinuity;
+    if (updateData.enableStoryCallbacks !== undefined) mapped.enable_story_callbacks = updateData.enableStoryCallbacks;
+    mapped.updated_at = new Date().toISOString();
+
+    const { data, error } = await (supabaseAdmin as any)
+      .from('family_universes')
+      .update(mapped)
+      .eq('user_id', userId)
+      .select()
+      .single();
+    if (error || !data) return null;
+    return mapSupabaseFamilyUniverse(data);
+  },
+
+  async getCharacters(userId: string, options?: { activeOnly?: boolean }): Promise<Character[]> {
+    let query = (supabaseAdmin as any)
+      .from('characters')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (options?.activeOnly) {
+      query = query.eq('is_active', true);
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+    return (data as any[]).map(mapSupabaseCharacter);
+  },
+
+  async createCharacter(charData: NewCharacter): Promise<Character> {
+    const { data, error } = await (supabaseAdmin as any)
+      .from('characters')
+      .insert({
+        user_id: charData.userId,
+        name: charData.name,
+        nickname: charData.nickname,
+        gender: charData.gender,
+        age_range: charData.ageRange,
+        description: charData.description,
+        personality: charData.personality,
+        favorite_things: charData.favoriteThings,
+        role: charData.role,
+        avatar_url: charData.avatarUrl,
+        illustration_style: charData.illustrationStyle,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return mapSupabaseCharacter(data);
+  },
+
+  async updateCharacter(id: string, charData: Partial<Character>): Promise<Character | null> {
+    const mapped: Record<string, any> = {};
+    if (charData.name !== undefined) mapped.name = charData.name;
+    if (charData.nickname !== undefined) mapped.nickname = charData.nickname;
+    if (charData.gender !== undefined) mapped.gender = charData.gender;
+    if (charData.ageRange !== undefined) mapped.age_range = charData.ageRange;
+    if (charData.description !== undefined) mapped.description = charData.description;
+    if (charData.personality !== undefined) mapped.personality = charData.personality;
+    if (charData.favoriteThings !== undefined) mapped.favorite_things = charData.favoriteThings;
+    if (charData.role !== undefined) mapped.role = charData.role;
+    if (charData.avatarUrl !== undefined) mapped.avatar_url = charData.avatarUrl;
+    if (charData.illustrationStyle !== undefined) mapped.illustration_style = charData.illustrationStyle;
+    if (charData.isActive !== undefined) mapped.is_active = charData.isActive;
+    mapped.updated_at = new Date().toISOString();
+
+    const { data, error } = await (supabaseAdmin as any)
+      .from('characters')
+      .update(mapped)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error || !data) return null;
+    return mapSupabaseCharacter(data);
+  },
+};
+
+function mapSupabaseFamilyUniverse(data: any): FamilyUniverse {
+  return {
+    id: data.id,
+    userId: data.user_id,
+    universeName: data.universe_name,
+    description: data.description,
+    totalStories: data.total_stories,
+    totalCharacters: data.total_characters,
+    totalWordsGenerated: data.total_words_generated,
+    favoriteThemes: data.favorite_themes,
+    defaultArtStyle: data.default_art_style,
+    defaultTone: data.default_tone,
+    enableCharacterContinuity: data.enable_character_continuity,
+    enableStoryCallbacks: data.enable_story_callbacks,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
+function mapSupabaseCharacter(data: any): Character {
+  return {
+    id: data.id,
+    userId: data.user_id,
+    name: data.name,
+    nickname: data.nickname,
+    gender: data.gender,
+    ageRange: data.age_range,
+    description: data.description,
+    personality: data.personality,
+    favoriteThings: data.favorite_things,
+    role: data.role,
+    avatarUrl: data.avatar_url,
+    illustrationStyle: data.illustration_style,
+    storiesCount: data.stories_count,
+    lastAppearedAt: data.last_appeared_at,
+    isActive: data.is_active,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
+// RPC wrapper functions for Supabase (uses native Postgres functions)
+
+async function addCredits(
+  userId: string,
+  amount: number,
+  type: 'purchase' | 'usage' | 'bonus' | 'refund' | 'gift' | 'subscription' | 'adjustment',
+  description: string,
+  metadata?: Record<string, unknown>
+): Promise<AddCreditsResult> {
+  const { data, error } = await supabaseAdmin.rpc('add_credits', {
+    p_user_id: userId,
+    p_amount: amount,
+    p_type: type,
+    p_description: description,
+    p_metadata: (metadata ?? {}) as any,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      newBalance: 0,
+      transactionId: null,
+      errorMessage: error.message,
+    };
+  }
+
+  // Supabase RPC returns array of results
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    success: result?.success ?? false,
+    newBalance: result?.new_balance ?? 0,
+    transactionId: result?.transaction_id ?? null,
+    errorMessage: result?.error_message ?? null,
+  };
+}
+
+async function redeemGiftCode(userId: string, redemptionCode: string): Promise<RedeemGiftCodeResult> {
+  const { data, error } = await supabaseAdmin.rpc('redeem_gift_code', {
+    p_user_id: userId,
+    p_redemption_code: redemptionCode,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      errorMessage: error.message,
+      tier: null,
+      durationMonths: 0,
+      newPeriodEnd: null,
+    };
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    success: result?.success ?? false,
+    errorMessage: result?.error_message ?? null,
+    tier: result?.tier as SubscriptionTier ?? null,
+    durationMonths: result?.duration_months ?? 0,
+    newPeriodEnd: result?.new_period_end ?? null,
+  };
+}
+
+async function recordStoryGeneration(
+  userId: string,
+  usedPremiumVoice: boolean = false
+): Promise<RecordStoryGenerationResult> {
+  const { data, error } = await supabaseAdmin.rpc('record_story_generation', {
+    p_user_id: userId,
+    p_used_premium_voice: usedPremiumVoice,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      storiesRemaining: 0,
+      premiumVoicesRemaining: 0,
+    };
+  }
+
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    success: result?.success ?? false,
+    storiesRemaining: result?.stories_remaining ?? 0,
+    premiumVoicesRemaining: result?.premium_voices_remaining ?? 0,
+  };
+}
+
 // Supabase Database Abstraction Layer
 export const supabaseAdapter: DatabaseAbstractionLayer = {
   users: userRepository,
@@ -775,6 +1021,12 @@ export const supabaseAdapter: DatabaseAbstractionLayer = {
   subscriptions: subscriptionRepository,
   usage: usageRepository,
   gifts: giftRepository,
+  universe: universeRepository,
+
+  // RPC-equivalent functions (using native Supabase RPC)
+  addCredits,
+  redeemGiftCode,
+  recordStoryGeneration,
 
   // Supabase doesn't have native transaction support in the JS client
   // This is a limitation - operations run sequentially but not atomically
